@@ -1,0 +1,24 @@
+# LaTeX build products
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+*.bcf
+*.run.xml
+*.xdv
+
+# Generated manuscript PDF (remove this rule if you want PDFs versioned)
+main.pdf
+
+# Editor / OS files
+.DS_Store
+*.swp
+*.swo
+*~

@@ -1,0 +1,39 @@
+\documentclass[letterpaper,twocolumn,10pt]{article}
+\usepackage{usenix2019_v3}
+\usepackage{amsmath}
+\usepackage{graphicx}
+
+% OSDI '27 asks for page numbers on submitted papers. The USENIX style
+% leaves the article class's plain page style enabled by default.
+\pagestyle{plain}
+
+\begin{document}
+\date{}
+\title{Your Paper Title}
+
+% OSDI '27 uses double-blind review. Keep author names and identifying
+% acknowledgments out of the submission draft. Update this for the final paper.
+\author{Anonymous authors}
+
+\maketitle
+
+\begin{abstract}
+\input{sections/abstract}
+\end{abstract}
+
+\input{sections/introduction}
+\input{sections/background}
+\input{sections/design}
+\input{sections/implementation}
+\input{sections/evaluation}
+\input{sections/discussion}
+\input{sections/related-work}
+\input{sections/conclusion}
+
+% Add acknowledgments only to the non-anonymous camera-ready version.
+% \input{sections/acknowledgments}
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}
