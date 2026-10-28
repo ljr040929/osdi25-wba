@@ -1,3 +1,552 @@
 \section{Design}
-% The core observer and window-control subsections are drafted separately.
-\input{sections/protection}
+\label{sec:design}
+\subsection{Overview}
+\label{sec:overview}
+
+WAFT implements per-flow weighted bandwidth allocation through a distributed control loop at each sender. Building on the excess in-flight allocation principle established in \S\ref{sec:signal}, WAFT translates application-specified flow weights into excess occupancy targets and regulates each flow's aggregate sending window to track these targets. The control loop operates on logical flows, independently of the forwarding paths selected for individual packets.
+
+Each sender combines an excess in-flight observer, a weighted window controller, and a budget manager. The observer measures time-average excess occupancy from transmission and acknowledgment events. The controller adjusts one aggregate sending window to track the target, and the budget manager maps the flow weight to that target and adapts it under sustained congestion.
+
+WAFT employs two control timescales. The inner loop updates the sending window every \(H=T_0/2\), where \(T_0\) is the baseline round-trip time. A slower RTT-driven protection loop adjusts the occupancy target when network contention exceeds the configured operating range. The two loops share the same observer and window enforcement mechanism; changing a target does not reset the sending window. Packet forwarding, path switching, and packet spraying remain under the control of the underlying transport and load balancer.
+
+\subsection{Constant-Space Occupancy Measurement}
+\label{sec:observer}
+
+WAFT reconstructs exact period-average excess occupancy from a fixed set of aggregate statistics. Each transmission or acknowledgment event requires constant processing.
+
+\paragraph{Measuring excess occupancy.}
+
+For flow \(i\), let \(S_i(t)\) and \(A_i(t)\) denote cumulative uniquely first-transmitted and uniquely confirmed payload bytes. Its actual outstanding occupancy is
+
+\[
+I_i(t)=S_i(t)-A_i(t).
+\]
+
+As established in \S\ref{sec:signal}, when \(T_0\) is a lower bound on first-transmission-to-confirmation time, its excess occupancy is
+
+\begin{equation}
+\label{eq:design-9}
+M_i(t)=I_i(t)-\big[S_i(t)-S_i(t-T_0)\big].
+\end{equation}
+
+The second term represents \emph{young outstanding data}: bytes first transmitted within the preceding baseline round trip. These bytes have not yet reached the age threshold defining excess occupancy. Thus, Equation~\eqref{eq:design-9} expresses excess occupancy as actual outstanding data minus young outstanding data.
+
+The controller operates on the time average over a fixed period
+
+\begin{equation}
+\label{eq:design-10}
+\widehat M_{i,k}
+=
+\frac{1}{H}\int_{t_k}^{t_k+H}M_i(t)\,dt,
+\qquad H=\frac{T_0}{2},
+\end{equation}
+
+where \(t_k=kH\). Averaging the actual occupancy over a control period provides the same byte-time accounting used in the throughput–residence identity of \S\ref{sec:signal}.
+
+\paragraph{Computing occupancy from aggregate statistics.}
+
+WAFT maintains three statistics during period \(k\). We omit the flow index when unambiguous.
+
+First, the outstanding-byte area is
+
+\begin{equation}
+\label{eq:design-11}
+J_k=\int_{t_k}^{t_k+H}I_i(t)\,dt.
+\end{equation}
+
+Second, \(B_k\) records the number of uniquely first-transmitted payload bytes in the period. Third, \(V_k\) records their first-transmission time moment relative to the period boundary:
+
+\begin{equation}
+\label{eq:design-12}
+B_k=\sum_{s\in[t_k,t_k+H)}b_s,
+\qquad
+V_k=\sum_{s\in[t_k,t_k+H)}b_s(s-t_k),
+\end{equation}
+
+where \(b_s\) is the number of unique payload bytes first transmitted at time \(s\).
+
+A baseline interval of length \(T_0=2H\) spans three transmission periods during an observation period. Their aggregate statistics determine the young-outstanding area.
+
+Consider the contributions of bytes first transmitted in different periods:
+
+\begin{itemize}
+\item \textbf{Current period \(k\).} A byte first transmitted at time \(s\) remains young for the rest of the current period, contributing \(t_k+H-s\) byte-time units. Summing these contributions gives \(HB_k-V_k\).
+\item \textbf{Previous period \(k-1\).} Every byte first transmitted during this period remains younger than \(T_0\) throughout period \(k\), contributing an area of \(HB_{k-1}\).
+\item \textbf{Period \(k-2\).} A byte first transmitted at relative time \(s-t_{k-2}\) remains young in period \(k\) for precisely that duration. Its aggregate contribution is \(V_{k-2}\).
+\end{itemize}
+
+Earlier transmissions have already exceeded the baseline age at the beginning of period \(k\). Therefore, the total young-outstanding area is
+
+\begin{equation}
+\label{eq:design-13}
+\begin{aligned}
+&\int_{t_k}^{t_k+H}
+\big[S_i(t)-S_i(t-T_0)\big]\,dt\\
+&\qquad=HB_k-V_k+HB_{k-1}+V_{k-2}.
+\end{aligned}
+\end{equation}
+
+Subtracting this area from \(J_k\) gives the required measurement.
+
+\begin{lemma}[Exact Period-Average Observation]
+\label{lem:main-2}
+Let \(T_0=2H\) be a valid lower bound on the confirmation residence of every uniquely transmitted data unit. The mean excess occupancy over period \(k\) is exactly
+
+\begin{equation}
+\label{eq:design-14}
+\boxed{
+\widehat M_{i,k}
+=
+\frac{
+J_k-HB_k+V_k-HB_{k-1}-V_{k-2}
+}{H}.
+}
+\end{equation}
+\end{lemma}
+
+\begin{proof} By Equation~\eqref{eq:design-9}, the integral of excess occupancy equals the integral of actual outstanding occupancy minus the young-outstanding area. The former is \(J_k\) by definition, while Equation~\eqref{eq:design-13} gives the latter. Dividing their difference by \(H\) yields Equation~\eqref{eq:design-14}.
+\end{proof}
+
+This reconstruction is exact under the baseline and unique-confirmation semantics above. Its history has fixed size, independent of packet and path counts.
+
+\paragraph{Event-driven implementation.}
+
+WAFT updates the observer directly from transport events. Since actual outstanding occupancy is constant between changes in uniquely outstanding data, its area can be accumulated incrementally. Before processing an event at time \(t\), the sender adds \(I_i(t^-)(t-t_{\mathrm{last}})\) to the current area's accumulator and advances \(t_{\mathrm{last}}\). The event then updates the outstanding quantity and the corresponding transmission statistics.
+
+\begin{table}[t]
+\caption{Observer updates after accumulating the outstanding-byte area.}
+\label{tab:observer-events}
+\begin{tabularx}{\columnwidth}{@{}p{0.29\columnwidth}X@{}}
+\toprule
+Event & Observer operation \\
+\midrule
+First transmission of \(b\) unique bytes &
+Increase \(I_i\) and \(B_k\) by \(b\); increase \(V_k\) by \(b(t-t_k)\). \\
+First confirmation of \(b\) unique bytes & Decrease \(I_i\) by \(b\). \\
+End of control period & Finalize \(J_k\), compute \(\widehat M_{i,k}\) using Equation~\eqref{eq:design-14}, and rotate the fixed history. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Retransmitting previously sent data does not create additional unique bytes. Acknowledgment processing releases each data unit only once; selective acknowledgments allow out-of-order data to be released independently of earlier sequence gaps. These operations reuse the reliable transport's existing unique-data accounting.
+
+The observer uses six 64-bit fields and four 32-bit fields, totaling 64 bytes of additional state per flow. Each first-send event, unique-confirmation event, and control-period boundary requires \(O(1)\) aggregate operations. This state and processing complexity is independent of the number of paths used by the logical flow.
+
+\subsection{Weighted In-Flight Window Control}
+\label{sec:window}
+
+WAFT maps application weights to occupancy targets and uses the observer's feedback to enforce them through the sending window.
+
+\paragraph{Mapping application weights to occupancy targets.}
+
+Applications assign each logical flow a positive weight \(w_i\), representing its relative allocation priority. For flows sharing an allocation domain, WAFT configures a common unit occupancy budget \(a>0\) and assigns the nominal target
+
+\begin{equation}
+\label{eq:design-15}
+\boxed{
+q_i=aw_i.
+}
+\end{equation}
+
+The bandwidth-sharing result in \S\ref{sec:signal} then gives, under a common effective service environment,
+
+\begin{equation}
+\label{eq:design-16}
+x_i=C\frac{w_i}{\sum_jw_j}.
+\end{equation}
+
+Each sender uses its own weight and the configured unit budget. Shared network service reflects the competing weight sum implicitly.
+
+\paragraph{From an occupancy target to a sending window.}
+
+WAFT distinguishes three quantities: the sending window \(W_i\), the realized outstanding occupancy \(I_i\), and the excess occupancy \(M_i\). The window is the sender's admission limit on unconfirmed payload bytes; the outstanding occupancy measures data already admitted but not yet confirmed; and the excess occupancy measures the portion that has remained unconfirmed beyond \(T_0\).
+
+At a stable operating point,
+
+\begin{equation}
+\label{eq:design-17}
+\overline I_i=x_iT_0+\overline M_i.
+\end{equation}
+
+The window accommodates baseline pipeline data \(x_iT_0\) and excess data \(q_i\). WAFT uses \(W_i\) as its actuator and measured excess occupancy \(\widehat M_i\) as feedback.
+
+At each inner-loop period boundary, the sender computes the normalized occupancy error
+
+\begin{equation}
+\label{eq:design-18}
+e_{i,k}
+=
+\frac{q_i-\widehat M_{i,k}}
+{\max(q_i,\widehat M_{i,k})},
+\end{equation}
+
+and updates its aggregate window according to
+
+\begin{equation}
+\label{eq:design-19}
+\boxed{
+W_{i,k+1}
+=
+\operatorname{clip}_{[L,\,2W_{i,k}]}
+\left(
+W_{i,k}[1+g e_{i,k}]
+\right).
+}
+\end{equation}
+
+The current configuration uses \(g=0.25\) and a minimum payload window \(L=1000\) bytes.
+
+The update has three properties. First, its direction follows the occupancy error: an observed occupancy below the target increases the window, while an occupancy above the target decreases it. Second, because \(e_{i,k}\in[-1,1]\), the unconstrained multiplicative step is bounded by \(1-g\) and \(1+g\); with \(g=0.25\), it lies between 0.75 and 1.25. The window consequently remains positive and avoids arbitrarily large single-period adjustments. Third, at an interior fixed point where clipping is inactive, the update vanishes precisely when
+
+\begin{equation}
+\label{eq:design-20}
+\widehat M_i=q_i.
+\end{equation}
+
+This is the target condition required by the allocation principle.
+
+A new window command affects the admission of subsequent data. If the command falls below the amount already outstanding, the sender withholds new transmissions while existing data drains through acknowledgments. All packets of a logical flow, regardless of their selected paths, share the same window and observer. The transport may additionally pace admitted packets using the baseline RTT; this affects the timing of transmissions without changing the occupancy-control objective. WAFT activates periodic feedback control after the first valid confirmation, while startup and loss recovery retain the underlying transport's responsibilities.
+
+\paragraph{Adapting to contention.}
+
+Occupancy feedback captures changes in network service. When additional traffic increases the residence experienced by a flow, more of its outstanding data exceeds the baseline age, increasing \(\widehat M_i\). The resulting negative error reduces the sending window. Conversely, when contention decreases and excess occupancy falls below the target, the controller increases the window to use the newly available bandwidth. Every sender performs these adjustments independently.
+
+The following local stability result guides gain selection.
+
+\begin{proposition}[Local Stability under Quasi-Static Common Service]
+\label{prop:main-2}
+Consider \(n\) continuously backlogged flows sharing a single capacity \(C\) and a common baseline RTT \(T_0\). Suppose each control update observes the exact fluid equilibrium corresponding to the current windows, every window is fully utilized, and clipping is inactive. Let
+
+\[
+B=CT_0,\qquad Q=\sum_iq_i.
+\]
+
+The positive equilibrium has aggregate window \(S^\star=B+Q\). The linearized window dynamics have eigenvalues
+
+\begin{equation}
+\label{eq:design-21}
+\lambda_{\mathrm{share}}=1-g,
+\qquad
+\lambda_{\mathrm{aggregate}}
+=1-g\frac{B+Q}{Q}.
+\end{equation}
+
+The linearized dynamics are asymptotically stable if and only if
+
+\begin{equation}
+\label{eq:design-22}
+\boxed{
+0<g<\frac{2Q}{B+Q}.
+}
+\end{equation}
+\end{proposition}
+
+\begin{proof}[Proof sketch] Let \(S=\sum_iW_i>B\). At the quasi-static fluid equilibrium,
+
+\[
+x_i=\frac{CW_i}{S},
+\qquad
+M_i(W)=W_i\left(1-\frac{B}{S}\right).
+\]
+
+The conditions \(M_i=q_i\) yield \(S^\star=B+Q\) and \(W_i^\star=(B+Q)q_i/Q\). Linearizing Equation~\eqref{eq:design-19} around this point separates perturbations of the relative window shares from perturbations of the total window. Their eigenvalues are given in Equation~\eqref{eq:design-21}. Requiring both eigenvalue magnitudes to be below one gives Equation~\eqref{eq:design-22}. Appendix~\ref{app:e-3} derives the full Jacobian.
+\end{proof}
+
+At the reference operating point \(Q=B\), the configured gain \(g=0.25\) gives \(\lambda_{\mathrm{share}}=0.75\) and \(\lambda_{\mathrm{aggregate}}=0.5\). This gain condition establishes local asymptotic stability in the quasi-static fluid model.
+
+\subsection{Occupancy Budget Configuration}
+\label{sec:budget}
+
+The weight-to-budget mapping in Equation~\eqref{eq:design-15} separates application policy from the occupancy scale used by the controller. Weights specify the desired relative service shares, while the unit budget \(a\) determines the amount of excess outstanding data permitted per unit weight. A common unit budget is configured for competing flows within the same allocation service domain.
+
+In a continuously utilized common service domain with capacity \(C\), the relationship derived in \S\ref{sec:signal} gives
+
+\begin{equation}
+\label{eq:design-23}
+D=\frac{a\Omega}{C},
+\qquad
+\Omega=\sum_iw_i,
+\end{equation}
+
+where \(D\) is the mean excess residence. Hence, increasing \(a\) increases the operating residence level while preserving the intended bandwidth ratios.
+
+WAFT selects \(a\) offline according to the service domain's planned capacity, expected concurrent weights, and latency objective. For a planned active-weight sum \(\Omega_{\mathrm{plan}}\) and reference mean confirmation residence \(R_{\mathrm{ref}}>T_0\), the reference budget is
+
+\begin{equation}
+\label{eq:design-24}
+\boxed{
+a_{\mathrm{ref}}
+=
+\frac{C(R_{\mathrm{ref}}-T_0)}
+{\Omega_{\mathrm{plan}}}.
+}
+\end{equation}
+
+The default reference is \(R_{\mathrm{ref}}=2T_0\), subject to the latency headroom of the service class. Under this setting, the planned aggregate excess occupancy equals one baseline bandwidth-delay product.
+
+For service domains with several capacity constraints, the planning capacity can be derived from the expected traffic fractions. If \(p_{i\ell}\) is the planned fraction of flow \(i\)'s traffic traversing resource \(\ell\), define
+
+\begin{equation}
+\label{eq:design-25}
+s_{\mathrm{plan}}
+=
+\min_\ell
+\frac{C_\ell}{\sum_i p_{i\ell}w_i}.
+\end{equation}
+
+The capacity-feasible planning vector is \(x_i=s_{\mathrm{plan}}w_i\), yielding
+
+\[
+a_{\mathrm{ref}}
+=
+s_{\mathrm{plan}}(R_{\mathrm{ref}}-T_0).
+\]
+
+These estimates are deployment-time inputs to budget configuration.
+
+Budget selection also determines allocation resolution. Packet granularity, window quantization, and control dynamics cause deviations between realized occupancy and its target. Suppose the absolute mean-stock tracking deviation of flow \(i\) is bounded by a calibrated value \(b_i\). Achieving a relative deviation target \(\epsilon_q\) requires
+
+\begin{equation}
+\label{eq:design-26}
+a\ge
+\max_i\frac{b_i}{\epsilon_qw_i}.
+\end{equation}
+
+Larger occupancy budgets reduce the relative effect of these absolute deviations, but increase additional residence according to Equation~\eqref{eq:design-23}. WAFT therefore configures \(a\) within an operating range defined jointly by allocation precision and latency headroom.
+
+The normal-service RTT boundary \(\beta\) introduced below provides a further configuration constraint. With planned minimum effective capacity \(C_{\min}\), a headroom allowance \(h\), and planned weight \(\Omega_{\mathrm{plan}}\), the normal operating point is selected to satisfy
+
+\begin{equation}
+\label{eq:design-27}
+T_0+\frac{a\Omega_{\mathrm{plan}}}{C_{\min}}+h
+\le\beta.
+\end{equation}
+
+This places the nominal weighted allocation within the normal-delay region, leaving the protection mechanism to handle sustained overload beyond the planned operating range.
+
+\subsection{RTT-Guided Congestion Protection}
+\label{sec:protection}
+
+Under the nominal budget \(q_i=aw_i\), the aggregate target occupancy grows with the active weight sum. During large incasts or sustained overload, the actual competing weight may substantially exceed the planned value, increasing excess residence and queue occupancy. In addition, a large weight disparity can leave many low-weight transfers with small bandwidth shares. For incasts containing short low-weight transfers, increasing their relative service can accelerate their completion and remove transient competitors from the shared bottleneck.
+
+WAFT addresses these conditions through smooth RTT-guided budget protection. The mechanism reduces aggregate occupancy targets as congestion intensifies and progressively compresses the differences between flow weights. It operates as a slower budget-adjustment loop above the existing window controller.
+
+\paragraph{RTT-based congestion assessment.}
+
+WAFT configures two mean RTT thresholds,
+
+\begin{equation}
+\label{eq:design-28}
+T_0<\beta<\gamma,
+\end{equation}
+
+where \(\beta\) defines the normal weighted-service boundary and \(\gamma\) defines the asymptotic mean-RTT objective of congestion protection. Both are configured time values.
+
+For each protection epoch, the sender computes a byte-weighted mean RTT from valid samples:
+
+\begin{equation}
+\label{eq:design-29}
+\overline R_{i,k}
+=
+\frac{\sum_j b_jR_j}{\sum_jb_j},
+\end{equation}
+
+where \(b_j\) denotes newly confirmed unique payload bytes represented by sample \(j\). Samples with ambiguous first-transmission timestamps due to retransmission are excluded. The epoch duration is
+
+\begin{equation}
+\label{eq:design-30}
+E_{i,k}
+=
+2\max(\overline R_{i,k-1},T_0),
+\end{equation}
+
+initialized using the first valid RTT observation. This loop runs more slowly than the \(H=T_0/2\) window controller. When an epoch contains no valid samples, the budget scale is held unchanged.
+
+At the nominal scale, an RTT above \(\beta\) starts budget reduction. Below \(\beta\), compressed budgets recover toward their nominal values. At or above \(\gamma\), every positive scale decreases. During protection, the update direction follows the scale-dependent boundary derived below.
+
+\paragraph{Joint compression of occupancy and weight differences.}
+
+The service class configures a weight range
+
+\[
+0<w_{\min}\le w_i\le w_{\max}.
+\]
+
+Each flow maintains a protection scale \(s_i\in(0,1]\), initially \(s_i=1\). Let \(u_i=w_i/w_{\min}\ge1\). WAFT replaces the nominal occupancy target with
+
+\begin{equation}
+\label{eq:design-31}
+\boxed{
+q_i(s_i)
+=
+aw_{\min}s_i u_i^{s_i}.
+}
+\end{equation}
+
+The scale controls both occupancy and weight differentiation.
+
+At \(s_i=1\), it reproduces the nominal target \(q_i=aw_i\). Its derivative is
+
+\begin{equation}
+\label{eq:design-32}
+\frac{dq_i}{ds_i}
+=
+aw_{\min}u_i^{s_i}
+\big(1+s_i\ln u_i\big)>0.
+\end{equation}
+
+Therefore, reducing \(s_i\) decreases the absolute occupancy target of every flow. It directly reduces the aggregate occupancy budget when the participating scales decrease.
+
+Meanwhile, in a common service domain where competing flows have a common protection scale \(s\), accurate occupancy tracking gives
+
+\begin{equation}
+\label{eq:design-33}
+\boxed{
+\frac{x_i}{x_j}
+=
+\frac{q_i(s)}{q_j(s)}
+=
+\left(\frac{w_i}{w_j}\right)^s.
+}
+\end{equation}
+
+The allocation consequently moves smoothly from the configured weighted shares at \(s=1\) toward equal shares as \(s\) approaches zero. For example, an original weight ratio of 4 becomes a bandwidth ratio of 2 at \(s=0.5\) and approximately 1.15 at \(s=0.1\). A common multiplicative reduction of the original budgets would reduce occupancy without changing the bandwidth ratio; the exponent in Equation~\eqref{eq:design-31} additionally improves the relative service received by low-weight flows.
+
+For \(N\) backlogged flows and \(U=w_{\max}/w_{\min}\), the same common-service model provides
+
+\begin{equation}
+\label{eq:design-34}
+\frac{x_i}{C/N}
+=
+\frac{Nu_i^s}{\sum_ju_j^s}
+\ge U^{-s}.
+\end{equation}
+
+Thus, decreasing \(s\) improves a lower bound on each flow's service relative to equal sharing. This bound quantifies the relative service of low-weight incast transfers sharing capacity with higher-weight flows.
+
+\paragraph{Smooth budget-scale updates.}
+
+Define the normalized excess RTT and threshold parameters
+
+\begin{equation}
+\label{eq:design-35}
+z_{i,k}
+=
+\max\left(0,\frac{\overline R_{i,k}}{T_0}-1\right),
+\quad
+G=\frac{\gamma-T_0}{T_0},
+\quad
+\Delta=\frac{\gamma-\beta}{T_0}.
+\end{equation}
+
+At the end of each valid protection epoch, WAFT computes a candidate scale
+
+\begin{equation}
+\label{eq:design-36}
+\widetilde s_{i,k}
+=
+\min\left(
+1,\frac{s_{i,k}G}{z_{i,k}+\Delta s_{i,k}}
+\right)
+\end{equation}
+
+and applies a geometric update
+
+\begin{equation}
+\label{eq:design-37}
+\boxed{
+s_{i,k+1}
+=
+s_{i,k}^{\,1-\eta}
+\widetilde s_{i,k}^{\,\eta}.
+}
+\end{equation}
+
+Here \(0<\eta\le1\) is the budget-layer adjustment gain. For the configured weight range \(U\), the sufficient gain bound
+
+\begin{equation}
+\label{eq:design-38}
+0<\eta\le
+\min\left\{\frac12,\frac{1}{1+\ln U}\right\}
+\end{equation}
+
+also supports the quasi-static local stability result of the budget layer.
+
+The update has an interpretable direction. For an interior scale \(s_i<1\), the budget decreases when
+
+\begin{equation}
+\label{eq:design-39}
+\overline R_i>\gamma-(\gamma-\beta)s_i,
+\end{equation}
+
+and increases when the inequality is reversed. At \(s_i=1\), this adjustment begins as soon as the measured mean RTT exceeds \(\beta\). When the mean RTT reaches \(\gamma\), any positive scale is reduced further. As RTT recovers, the budget returns continuously toward its nominal weighted target.
+
+At each outer-loop update, WAFT installs the new target \(q_i(s_{i,k+1})\). The inner controller continues to apply Equation~\eqref{eq:design-19} to the updated target, without resetting the sending window. Each sender maintains its own scale and RTT statistics; no synchronization messages or active-flow count are required.
+
+\paragraph{Protection equilibrium.}
+
+The protection rule has the following equilibrium.
+
+\begin{proposition}[Equilibrium under Sustained Overload]
+\label{prop:main-3}
+Consider a fully utilized common service domain with capacity \(C\), common baseline RTT \(T_0\), exact occupancy tracking, and a common protection scale \(s\). Let
+
+\[
+K(s)=\sum_i u_i^s,
+\qquad
+R_{\mathrm{nom}}
+=
+T_0+\frac{a\sum_iw_i}{C}.
+\]
+
+If \(R_{\mathrm{nom}}\le\beta\), the nominal scale \(s=1\) is the normal operating equilibrium. If \(R_{\mathrm{nom}}>\beta\), the quasi-static budget model has a unique interior protection equilibrium \(s^\star\in(0,1)\), with
+
+\begin{equation}
+\label{eq:design-40}
+\boxed{
+\beta<R^\star<\gamma.
+}
+\end{equation}
+\end{proposition}
+
+\begin{proof}[Proof sketch] Under common residence and accurate occupancy tracking,
+
+\begin{equation}
+\label{eq:design-41}
+x_i=C\frac{u_i^s}{K(s)},
+\qquad
+R=T_0+\frac{aw_{\min}}{C}sK(s).
+\end{equation}
+
+An interior fixed point of Equation~\eqref{eq:design-37} satisfies
+
+\[
+R=\gamma-(\gamma-\beta)s.
+\]
+
+Combining the two relations gives
+
+\begin{equation}
+\label{eq:design-42}
+F(s):=
+\frac{aw_{\min}}{C}sK(s)
++(\gamma-\beta)s
+=\gamma-T_0.
+\end{equation}
+
+Here \(F(0)=0\), and \(R_{\mathrm{nom}}>\beta\) implies \(F(1)>\gamma-T_0\). Moreover,
+
+\[
+F'(s)
+=
+\frac{aw_{\min}}{C}
+\sum_i u_i^s(1+s\ln u_i)
++(\gamma-\beta)>0.
+\]
+
+Hence a unique solution lies in \((0,1)\). Substituting it into the fixed-point RTT relation establishes \(\beta<R^\star<\gamma\).
+\end{proof}
+
+For a fixed weight mix replicated within this common service domain, increasing competition drives the equilibrium scale toward zero, the rate ratios toward one, and the mean RTT toward \(\gamma\). The threshold is an equilibrium mean-RTT target in the quasi-static model. Appendix~\ref{app:f-4} proves this scaling result.
+
+The protection layer adds a constant number of fields for scale, epoch timing, valid confirmed-byte counts, and RTT accumulation. The same observer and window controller track the resulting targets throughout normal service and overload.

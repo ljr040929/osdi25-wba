@@ -1,0 +1,2244 @@
+\section{Occupancy Conservation and Allocation}
+\label{app:a}
+
+\subsection{Transmission and Occupancy}
+\label{app:a-1}
+
+We consider a logical flow \(i\) consisting of unique payload data units \(b\). Each unit has payload size \(v_b\), first-transmission time \(s_b\), and first unique-confirmation time \(c_b\). Retransmissions preserve the identity of the original data, and duplicate acknowledgments do not release the same data more than once. Selective acknowledgments may confirm data out of order.
+
+Let \(T_{0,i}\) be a fixed lower bound on the first-transmission-to-confirmation time:
+
+\begin{equation}
+\label{eq:app-a-1}
+c_b-s_b\ge T_{0,i},\qquad \forall b\in i.
+\end{equation}
+
+Define cumulative unique first-send and confirmation functions \(S_i(t)\) and \(A_i(t)\). The actual outstanding occupancy is
+
+\begin{equation}
+\label{eq:app-a-2}
+I_i(t)=S_i(t)-A_i(t)
+=\sum_{b\in i}v_b\mathbf 1\{s_b\le t<c_b\}.
+\end{equation}
+
+The excess occupancy is
+
+\begin{equation}
+\label{eq:app-a-3}
+M_i(t)
+=\sum_{b\in i}v_b
+\mathbf 1\{s_b+T_{0,i}\le t<c_b\}.
+\end{equation}
+
+Since every byte sent within the previous \(T_{0,i}\) remains outstanding, the young outstanding occupancy is
+
+\begin{equation}
+\label{eq:app-a-4}
+Y_i(t)=S_i(t)-S_i(t-T_{0,i}).
+\end{equation}
+
+Subtracting young occupancy from actual outstanding occupancy gives the exact identity
+
+\begin{equation}
+\label{eq:app-a-5}
+\boxed{
+M_i(t)=I_i(t)-Y_i(t)
+=S_i(t-T_{0,i})-A_i(t).
+}
+\end{equation}
+
+This identity is independent of packet ordering and routing decisions.
+
+\begin{lemma}[Residence–Occupancy Conservation]
+\label{lem:a-1}
+Suppose a flow has a positive long-term unique-payload transmission rate \(x_i\), a finite byte-weighted mean confirmation residence \(T_i\), and negligible boundary occupancy-time contributions over increasingly long observation intervals. Then the long-term confirmation rate is also \(x_i\), and
+
+\begin{equation}
+\label{eq:app-a-6}
+\overline I_i=x_iT_i,
+\qquad
+\overline M_i=x_i(T_i-T_{0,i}).
+\end{equation}
+\end{lemma}
+
+\begin{proof} Consider an observation interval \([0,H]\), initially with no outstanding data. Let \(T_b=c_b-s_b\). Integrating Equation~\eqref{eq:app-a-3} over time gives
+
+\begin{equation}
+\label{eq:app-a-7}
+\int_0^H M_i(t)\,dt
+=
+\sum_{b:s_b\in[0,H]}
+v_b(T_b-T_{0,i})-E_i(H),
+\end{equation}
+
+where the unfinished right-boundary contribution is
+
+\begin{equation}
+\label{eq:app-a-8}
+E_i(H)=
+\sum_{b:s_b\in[0,H]}
+v_b\big[c_b-\max\{H,s_b+T_{0,i}\}\big]^+.
+\end{equation}
+
+The first term in Equation~\eqref{eq:app-a-7}, divided by \(H\), equals the unique first-send rate over the interval multiplied by the byte-weighted mean excess residence of those data units. By assumption, these quantities converge to \(x_i\) and \(T_i-T_{0,i}\), respectively. Since \(E_i(H)=o(H)\), dividing Equation~\eqref{eq:app-a-7} by \(H\) and taking \(H\to\infty\) yields
+
+\[
+\overline M_i=x_i(T_i-T_{0,i}).
+\]
+
+Applying the same occupancy-time argument to Equation~\eqref{eq:app-a-2} gives \(\overline I_i=x_iT_i\). Finally,
+
+\[
+A_i(H)=S_i(H)-I_i(H).
+\]
+
+Under the assumed vanishing boundary condition \(I_i(H)=o(H)\), the long-term unique-confirmation rate equals the first-send rate. Initial outstanding data add a left-boundary term that vanishes under the same conditions.
+\end{proof}
+
+This byte-level conservation identity holds across packet arrival processes and routing mechanisms under the stated boundary conditions. When confirmation residence consists of fixed baseline time plus network queueing, \(T_i-T_{0,i}\) is the byte-weighted mean additional queueing residence.
+
+\subsection{Allocation under Common Service}
+\label{app:a-2}
+
+Consider \(n\) continuously backlogged flows sharing an effective service capacity \(C\). Let their average excess occupancies equal positive targets \(q_i\).
+
+\begin{proposition}[Common-Service Bandwidth Allocation]
+\label{prop:a-1}
+If the flows experience a common mean excess residence \(D>0\) and collectively attain throughput \(C\), then
+
+\begin{equation}
+\label{eq:app-a-9}
+x_i=C\frac{q_i}{Q},
+\qquad
+D=\frac{Q}{C},
+\qquad Q=\sum_iq_i.
+\end{equation}
+\end{proposition}
+
+\begin{proof} Lemma~\ref{lem:a-1} gives \(q_i=x_iD\). Summing over flows yields \(Q=D\sum_ix_i=DC\). Substituting \(D=Q/C\) into \(x_i=q_i/D\) proves the proposition.
+\end{proof}
+
+A stationary fluid FIFO bottleneck with a constant positive queue provides a simple common-service example. If the bottleneck queue contains \(B\) bytes and serves data at capacity \(C\), then each arriving byte experiences queueing residence \(D=B/C\). All competing flows consequently share the same residence factor.
+
+The result also separates two effects of occupancy control. Relative targets \(q_i/Q\) determine bandwidth shares, while the aggregate target \(Q\) determines the common excess residence \(Q/C\).
+
+\subsection{Allocation across Multiple Bottlenecks}
+\label{app:a-3}
+
+We now consider a network with \(m\) capacity resources. Let \(C_\ell>0\) be the effective payload capacity of resource \(\ell\), and let \(R_{\ell i}\ge0\) denote the load placed on resource \(\ell\) by one unit of flow \(i\)'s throughput. The feasible rate region is
+
+\begin{equation}
+\label{eq:app-a-10}
+\mathcal X_R=
+\{\mathbf x\ge0:R\mathbf x\le\mathbf C\}.
+\end{equation}
+
+Assume this region admits a strictly positive feasible rate vector, every flow is subject to a finite capacity constraint, and the considered operating point has \(x_i>0\).
+
+For an arbitrary positive occupancy target vector \(\mathbf q\), define the associated utility
+
+\begin{equation}
+\label{eq:app-a-11}
+U_{\mathbf q}(\mathbf x)
+=\sum_iq_i\log x_i.
+\end{equation}
+
+Rates are expressed relative to a fixed reference unit inside the logarithm; the choice of reference does not affect the optimizer.
+
+\begin{theorem}[Multi-Bottleneck Allocation by Excess Occupancy]
+\label{thm:a-1}
+Suppose a positive feasible operating point satisfies \(\overline M_i=q_i\). Assume each flow's mean excess residence can be expressed as
+
+\begin{equation}
+\label{eq:app-a-12}
+D_i=\sum_\ell R_{\ell i}d_\ell,
+\end{equation}
+
+where the common resource residence prices \(d_\ell\ge0\) obey
+
+\begin{equation}
+\label{eq:app-a-13}
+d_\ell\big(C_\ell-(R\mathbf x)_\ell\big)=0
+\qquad \forall\ell.
+\end{equation}
+
+Then \(\mathbf x\) is the unique maximizer of
+
+\begin{equation}
+\label{eq:app-a-14}
+\boxed{
+\max_{\mathbf y\in\mathcal X_R}
+\sum_iq_i\log y_i.
+}
+\end{equation}
+\end{theorem}
+
+\begin{proof} By Lemma~\ref{lem:a-1} and the occupancy targets,
+
+\begin{equation}
+\label{eq:app-a-15}
+\frac{q_i}{x_i}=D_i
+=\sum_\ell R_{\ell i}d_\ell.
+\end{equation}
+
+For any feasible \(\mathbf y\),
+
+\begin{equation}
+\label{eq:app-a-16}
+\begin{aligned}
+\sum_i\frac{q_i}{x_i}(y_i-x_i)
+&=\sum_\ell d_\ell
+\big((R\mathbf y)_\ell-(R\mathbf x)_\ell\big)\\
+&\le \sum_\ell d_\ell
+\big(C_\ell-(R\mathbf x)_\ell\big)\\
+&=0.
+\end{aligned}
+\end{equation}
+
+This is the first-order optimality condition for maximizing the concave utility \(U_{\mathbf q}\) over the convex feasible region. Since \(U_{\mathbf q}\) is strictly concave for positive rates, the optimal rate vector is unique.
+\end{proof}
+
+Equation~\eqref{eq:app-a-15} is also the Karush–Kuhn–Tucker stationarity condition, with resource shadow prices \(d_\ell\). Their complementary-slackness conditions are given by Equation~\eqref{eq:app-a-13}.
+
+In a stationary FIFO fluid network, a resource with constant queue occupancy \(B_\ell>0\) has \(d_\ell=B_\ell/C_\ell\) and is saturated. A resource with spare capacity has zero standing queue and zero price. Such a network directly provides the residence-price structure in Equations~\eqref{eq:app-a-12}–\eqref{eq:app-a-13}.
+
+The theorem establishes the proportional-fair allocation induced by end-to-end occupancy targets across multiple bottlenecks. Different flows may incur different cumulative resource prices \(D_i\), according to the resources they consume, while satisfying one network-wide proportional-fair allocation objective.
+
+\paragraph{Removing baseline occupancy.}
+
+Lemma~\ref{lem:a-1} also gives
+
+\begin{equation}
+\label{eq:app-a-17}
+\overline I_i=x_iT_{0,i}+\overline M_i.
+\end{equation}
+
+Under the same additive residence-price model, suppose instead that a positive operating point maintains total outstanding occupancy \(\overline I_i=q_i\). Then
+
+\begin{equation}
+\label{eq:app-a-18}
+\frac{q_i}{x_i}-T_{0,i}
+=\sum_\ell R_{\ell i}d_\ell.
+\end{equation}
+
+These are the stationarity conditions for maximizing
+
+\begin{equation}
+\label{eq:app-a-19}
+\boxed{
+\sum_i\big[q_i\log x_i-T_{0,i}x_i\big]
+}
+\end{equation}
+
+over \(\mathcal X_R\), with the same capacity constraints and complementary prices.
+
+Thus, removing baseline pipeline occupancy aligns the controlled quantity with additional resource residence and its associated congestion prices.
+
+
+\section{Multipath Allocation Properties}
+\label{app:b}
+
+\subsection{Fixed Packet-Spraying Fractions}
+\label{app:b-1}
+
+Let \(\mathcal P_i\) denote the set of paths available to flow \(i\), and let \(\pi_{i,p}\ge0\) be the fraction of its long-term throughput carried on path \(p\), with
+
+\begin{equation}
+\label{eq:app-b-1}
+\sum_{p\in\mathcal P_i}\pi_{i,p}=1.
+\end{equation}
+
+Let \(A_{\ell,ip}\in\{0,1\}\) indicate whether path \(p\) of flow \(i\) traverses link \(\ell\). For fixed path fractions, the load matrix is
+
+\begin{equation}
+\label{eq:app-b-2}
+R_{\ell i}(\boldsymbol\pi)
+=
+\sum_{p\in\mathcal P_i}A_{\ell,ip}\pi_{i,p}.
+\end{equation}
+
+The corresponding feasible rate region is
+
+\begin{equation}
+\label{eq:app-b-3}
+\mathcal X_{R(\boldsymbol\pi)}
+=
+\{\mathbf x\ge0:R(\boldsymbol\pi)\mathbf x\le\mathbf C\}.
+\end{equation}
+
+Assume the nonqueueing baseline is accounted for consistently across each flow's usable paths. Suppose the conditional mean excess residence on path \(p\) can be represented by common link prices:
+
+\begin{equation}
+\label{eq:app-b-4}
+D_{i,p}=\sum_\ell A_{\ell,ip}d_\ell.
+\end{equation}
+
+Then the byte-weighted mean excess residence of the logical flow is
+
+\begin{equation}
+\label{eq:app-b-5}
+\begin{aligned}
+D_i
+&=\sum_p\pi_{i,p}D_{i,p}\\
+&=\sum_\ell R_{\ell i}(\boldsymbol\pi)d_\ell.
+\end{aligned}
+\end{equation}
+
+\begin{theorem}[Allocation under Fixed Path Fractions]
+\label{thm:b-1}
+Suppose \(\mathbf x\) is positive and feasible for \(\mathcal X_{R(\boldsymbol\pi)}\), the resource prices satisfy
+
+\begin{equation}
+\label{eq:app-b-6}
+d_\ell
+\big(C_\ell-(R(\boldsymbol\pi)\mathbf x)_\ell\big)=0,
+\end{equation}
+
+and every flow satisfies \(\overline M_i=q_i\). Then \(\mathbf x\) uniquely maximizes
+
+\begin{equation}
+\label{eq:app-b-7}
+\sum_iq_i\log x_i
+\quad\text{over }\mathcal X_{R(\boldsymbol\pi)}.
+\end{equation}
+\end{theorem}
+
+\begin{proof} Equation~\eqref{eq:app-b-5} gives the additive residence condition of Theorem~\ref{thm:a-1} with \(R=R(\boldsymbol\pi)\). Equation~\eqref{eq:app-b-6} supplies the corresponding capacity complementarity. Theorem~\ref{thm:a-1} therefore applies directly.
+\end{proof}
+
+This result applies to fixed flow routes and fixed long-term packet-spraying fractions. Path fractions enter the resource constraints, while each flow is controlled through one aggregate excess occupancy target.
+
+\subsection{Common Effective Service over Parallel Paths}
+\label{app:b-2}
+
+Consider \(P\) parallel paths with capacities \(C_p\), all available to the competing flows. Define
+
+\begin{equation}
+\label{eq:app-b-8}
+C_\Sigma=\sum_{p=1}^{P}C_p.
+\end{equation}
+
+When path fractions are freely adjustable, the aggregate feasible rate region of this parallel-path pool is
+
+\begin{equation}
+\label{eq:app-b-9}
+\mathcal X_{\mathrm{pool}}
+=
+\left\{\mathbf x\ge0:\sum_i x_i\le C_\Sigma\right\}.
+\end{equation}
+
+Necessity follows by summing path capacities. Sufficiency follows by choosing
+
+\begin{equation}
+\label{eq:app-b-10}
+f_{i,p}=x_i\frac{C_p}{C_\Sigma},
+\end{equation}
+
+which places no more than \(C_p\) on path \(p\) whenever \(\sum_i x_i\le C_\Sigma\).
+
+Let \(D_{i,p}\) denote the byte-weighted conditional excess residence experienced by flow \(i\) on path \(p\). A common effective residence follows when the paths supply flow-independent conditional means \(d_p\) and the flows use the same path fractions \(\pi_p\):
+
+\begin{equation}
+\label{eq:app-b-11}
+D_i=\sum_p\pi_pd_p=D.
+\end{equation}
+
+The path delays \(d_p\) may differ. Conversely, if every path provides the same conditional mean residence \(d>0\), then any path mixture satisfying \(\sum_p\pi_{i,p}=1\) gives
+
+\begin{equation}
+\label{eq:app-b-12}
+D_i=\sum_p\pi_{i,p}d=d.
+\end{equation}
+
+Under either service structure, aggregate occupancy targets produce
+
+\begin{equation}
+\label{eq:app-b-13}
+x_i=C_\Sigma\frac{q_i}{Q},
+\qquad Q=\sum_jq_j,
+\end{equation}
+
+provided the resulting path loads are feasible and the aggregate capacity is fully utilized.
+
+For a specified traffic mixture, the bandwidth allocation in Equation~\eqref{eq:app-b-13} fully utilizes every path exactly when
+
+\begin{equation}
+\label{eq:app-b-14}
+\boxed{
+\sum_iq_i\pi_{i,p}
+=Q\frac{C_p}{C_\Sigma},
+\qquad \forall p.
+}
+\end{equation}
+
+Indeed, the load on path \(p\) is
+
+\begin{equation}
+\label{eq:app-b-15}
+\sum_i x_i\pi_{i,p}
+=
+\frac{C_\Sigma}{Q}\sum_iq_i\pi_{i,p}.
+\end{equation}
+
+Equation~\eqref{eq:app-b-14} is therefore equivalent to requiring this load to equal \(C_p\). It constrains aggregate occupancy-weighted traffic placement and allows different path fractions across flows.
+
+\subsection{Adaptive Path Selection}
+\label{app:b-3}
+
+When path fractions can change, allocation must be defined over the joint routing-and-rate feasible region.
+
+Let \(f_{i,p}\ge0\) be the actual throughput of flow \(i\) on path \(p\), with
+
+\begin{equation}
+\label{eq:app-b-16}
+x_i=\sum_{p\in\mathcal P_i}f_{i,p}.
+\end{equation}
+
+The joint optimization problem is
+
+\begin{equation}
+\label{eq:app-b-17}
+\begin{aligned}
+\max_{\mathbf x,\mathbf f}\quad
+&\sum_iq_i\log x_i\\
+\text{s.t.}\quad
+&x_i=\sum_p f_{i,p},\\
+&A\mathbf f\le\mathbf C,\qquad \mathbf f\ge0.
+\end{aligned}
+\end{equation}
+
+For nonnegative resource prices \(\lambda_\ell\), define the price of path \(p\) as
+
+\begin{equation}
+\label{eq:app-b-18}
+c_{i,p}(\boldsymbol\lambda)
+=\sum_\ell A_{\ell,ip}\lambda_\ell.
+\end{equation}
+
+\begin{theorem}[Joint Routing–Rate Optimality]
+\label{thm:b-2}
+Under the standard positive-feasibility and finite-capacity assumptions, a positive feasible rate vector \(\mathbf x\), together with a feasible path allocation \(\mathbf f\), solves Equation~\eqref{eq:app-b-17} if and only if there exist nonnegative prices \(\boldsymbol\lambda\) satisfying
+
+\begin{equation}
+\label{eq:app-b-19}
+c_{i,p}(\boldsymbol\lambda)\ge\frac{q_i}{x_i},
+\qquad \forall i,p,
+\end{equation}
+
+\begin{equation}
+\label{eq:app-b-20}
+f_{i,p}>0
+\ \Longrightarrow
+c_{i,p}(\boldsymbol\lambda)=\frac{q_i}{x_i},
+\end{equation}
+
+and
+
+\begin{equation}
+\label{eq:app-b-21}
+\lambda_\ell
+\big(C_\ell-(A\mathbf f)_\ell\big)=0,
+\qquad\forall\ell.
+\end{equation}
+\end{theorem}
+
+\begin{proof} Introduce a multiplier \(\nu_i\) for each equality \(x_i=\sum_p f_{i,p}\). The Lagrangian is
+
+\begin{equation}
+\label{eq:app-b-22}
+\begin{aligned}
+\mathcal L
+&=\sum_iq_i\log x_i
++\boldsymbol\lambda^\top(\mathbf C-A\mathbf f)\\
+&\quad+\sum_i\nu_i\left(\sum_pf_{i,p}-x_i\right).
+\end{aligned}
+\end{equation}
+
+Stationarity for \(x_i>0\) gives \(\nu_i=q_i/x_i\). Optimality with respect to \(f_{i,p}\ge0\) requires \(\nu_i-c_{i,p}(\boldsymbol\lambda)\le0\), with equality for paths carrying positive traffic. This yields Equations~\eqref{eq:app-b-19}–\eqref{eq:app-b-20}. Capacity complementary slackness gives Equation~\eqref{eq:app-b-21}. These KKT conditions are necessary under the stated regularity assumptions and sufficient by concavity of the objective and convexity of the constraints. Strict concavity gives uniqueness of the aggregate optimal rate vector, although the path allocation need not be unique.
+\end{proof}
+
+\begin{corollary}[Sufficient Path-Service Condition]
+\label{cor:b-1}
+Suppose path excess residence is additive,
+
+\begin{equation}
+\label{eq:app-b-23}
+D_{i,p}=\sum_\ell A_{\ell,ip}d_\ell,
+\qquad d_\ell\ge0,
+\end{equation}
+
+and the \(d_\ell\) satisfy capacity complementarity. If
+
+\begin{equation}
+\label{eq:app-b-24}
+\overline M_i=\sum_p f_{i,p}D_{i,p}=q_i
+\end{equation}
+
+and every used path has minimum excess residence among the flow's available paths,
+
+\begin{equation}
+\label{eq:app-b-25}
+f_{i,p}>0
+\Longrightarrow
+D_{i,p}=\min_{r\in\mathcal P_i}D_{i,r},
+\end{equation}
+
+then the aggregate rates solve the joint optimization problem~\eqref{eq:app-b-17}.
+\end{corollary}
+
+\begin{proof} Under Equation~\eqref{eq:app-b-25}, all positive path traffic of flow \(i\) experiences the same minimum residence \(D_i^{\min}\). Equation~\eqref{eq:app-b-24} implies
+
+\[
+q_i=x_iD_i^{\min}.
+\]
+
+Set \(\lambda_\ell=d_\ell\). Then
+
+\[
+c_{i,p}(\boldsymbol\lambda)=D_{i,p}
+\ge D_i^{\min}=\frac{q_i}{x_i},
+\]
+
+with equality on used paths. The conditions of Theorem~\ref{thm:b-2} hold.
+\end{proof}
+
+This establishes a sufficient form of cooperation between flow-level occupancy control and adaptive path selection: aggregate occupancy determines the allocation targets, while path selection supplies the resource placement conditions for joint optimality.
+
+\paragraph{Effect of the routing feasible region.}
+
+A two-path example illustrates how the routing feasible region changes the allocation. Let both paths have unit capacity, and let two flows have equal targets \(q_1=q_2=1\). Their fixed spraying fractions are
+
+\begin{equation}
+\label{eq:app-b-26}
+\boldsymbol\pi_1=(0.9,0.1),
+\qquad
+\boldsymbol\pi_2=(0.3,0.7).
+\end{equation}
+
+For path residences
+
+\[
+d_1=\frac{13}{8},
+\qquad d_2=\frac38,
+\]
+
+the rates
+
+\begin{equation}
+\label{eq:app-b-27}
+\mathbf x=\left(\frac23,\frac43\right)
+\end{equation}
+
+saturate both paths. Their effective residences are \(D_1=3/2\) and \(D_2=3/4\), giving
+
+\begin{equation}
+\label{eq:app-b-28}
+x_1D_1=x_2D_2=1.
+\end{equation}
+
+By Theorem~\ref{thm:b-1}, this allocation is proportional-fair for the fixed spraying fractions. If traffic can be redistributed freely between paths, the larger joint feasible region admits the optimal rate vector \((1,1)\). Thus, the aggregate occupancy principle determines allocation over the service domain made available by the underlying path-selection mechanism.
+
+
+\section{Allocation Accuracy under Imperfect Service}
+\label{app:c}
+
+\subsection{Error in Bandwidth Shares}
+\label{app:c-1}
+
+Proposition~\ref{prop:main-1} assumes exact occupancy tracking and common effective excess residence. The effect of deviations can be quantified directly.
+
+Suppose the realized mean excess occupancy and residence are
+
+\begin{equation}
+\label{eq:app-c-1}
+\overline M_i=q_i(1+e_i),
+\qquad
+D_i=D(1+\delta_i),
+\end{equation}
+
+where \(D>0\), \(|e_i|\le\epsilon<1\), and \(|\delta_i|\le\rho<1\).
+
+The conservation identity gives
+
+\begin{equation}
+\label{eq:app-c-2}
+x_i=\frac{q_i}{D}
+\frac{1+e_i}{1+\delta_i}.
+\end{equation}
+
+Therefore, for any two flows,
+
+\begin{equation}
+\label{eq:app-c-3}
+\boxed{
+\frac{x_i/x_j}{q_i/q_j}
+=
+\frac{1+e_i}{1+e_j}
+\frac{1+\delta_j}{1+\delta_i}.
+}
+\end{equation}
+
+It follows that
+
+\begin{equation}
+\label{eq:app-c-4}
+\boxed{
+\frac{(1-\epsilon)(1-\rho)}
+{(1+\epsilon)(1+\rho)}
+\le
+\frac{x_i/x_j}{q_i/q_j}
+\le
+\frac{(1+\epsilon)(1+\rho)}
+{(1-\epsilon)(1-\rho)}.
+}
+\end{equation}
+
+The bound quantifies the effects of occupancy-tracking error and residence variation on bandwidth shares.
+
+For a fully utilized common service pool, define
+
+\begin{equation}
+\label{eq:app-c-5}
+t_i=\frac{1+e_i}{1+\delta_i},
+\qquad
+\overline t=\frac{\sum_iq_it_i}{Q}.
+\end{equation}
+
+Then
+
+\begin{equation}
+\label{eq:app-c-6}
+\boxed{
+\frac{x_i}{Cq_i/Q}=\frac{t_i}{\overline t}.
+}
+\end{equation}
+
+Since \(\overline t\) lies between the smallest and largest \(t_i\), the bounds in Equation~\eqref{eq:app-c-4} also apply to the normalized individual-rate ratio in Equation~\eqref{eq:app-c-6}.
+
+\subsection{Utility Error under Multiple Bottlenecks}
+\label{app:c-2}
+
+We next quantify allocation accuracy for the general feasible region
+
+\[
+\mathcal X_R=\{\mathbf x\ge0:R\mathbf x\le\mathbf C\}
+\]
+
+and utility \(U_{\mathbf q}(\mathbf x)=\sum_iq_i\log x_i\).
+
+Let \(\mathbf x^\star\) maximize this utility. For any nonnegative capacity-price vector \(\boldsymbol\lambda\) such that
+
+\[
+v_i=(R^\top\boldsymbol\lambda)_i>0,
+\]
+
+define
+
+\begin{equation}
+\label{eq:app-c-7}
+z_i=\frac{v_ix_i}{q_i},
+\qquad
+\phi(z)=z-1-\log z.
+\end{equation}
+
+\begin{theorem}[Utility-Gap Bound]
+\label{thm:c-1}
+Every positive feasible rate vector \(\mathbf x\) satisfies
+
+\begin{equation}
+\label{eq:app-c-8}
+\boxed{
+0\le U_{\mathbf q}(\mathbf x^\star)-U_{\mathbf q}(\mathbf x)
+\le
+\sum_iq_i\phi(z_i)
++
+\boldsymbol\lambda^\top(\mathbf C-R\mathbf x).
+}
+\end{equation}
+\end{theorem}
+
+\begin{proof} For fixed \(\boldsymbol\lambda\), the Lagrangian dual function is
+
+\begin{equation}
+\label{eq:app-c-9}
+G(\boldsymbol\lambda)
+=
+\boldsymbol\lambda^\top\mathbf C
++
+\sum_i
+\left[
+q_i\log\left(\frac{q_i}{v_i}\right)-q_i
+\right].
+\end{equation}
+
+By weak duality,
+
+\[
+U_{\mathbf q}(\mathbf x^\star)\le G(\boldsymbol\lambda).
+\]
+
+Using \(v_ix_i=q_iz_i\), direct rearrangement gives
+
+\begin{equation}
+\label{eq:app-c-10}
+G(\boldsymbol\lambda)-U_{\mathbf q}(\mathbf x)
+=
+\sum_iq_i(z_i-1-\log z_i)
++
+\boldsymbol\lambda^\top(\mathbf C-R\mathbf x).
+\end{equation}
+
+Combining the two relations proves Equation~\eqref{eq:app-c-8}.
+\end{proof}
+
+Suppose the realized occupancy is \(q_i(1+e_i)\) and the effective residence satisfies
+
+\begin{equation}
+\label{eq:app-c-11}
+D_i=(R^\top\mathbf d)_i(1+\delta_i)
+\end{equation}
+
+for a nonnegative reference residence-price vector \(\mathbf d\). Taking \(\boldsymbol\lambda=\mathbf d\) and applying Lemma~\ref{lem:a-1} gives
+
+\begin{equation}
+\label{eq:app-c-12}
+z_i=\frac{1+e_i}{1+\delta_i}.
+\end{equation}
+
+Under the same error bounds as \S\ref{app:c-1}, define
+
+\begin{equation}
+\label{eq:app-c-13}
+z_-=\frac{1-\epsilon}{1+\rho},
+\qquad
+z_+=\frac{1+\epsilon}{1-\rho},
+\qquad
+Q=\sum_iq_i.
+\end{equation}
+
+Since \(\phi\) decreases below 1 and increases above 1,
+
+\begin{equation}
+\label{eq:app-c-14}
+\boxed{\begin{aligned}
+&U_{\mathbf q}(\mathbf x^\star)-U_{\mathbf q}(\mathbf x)\\
+&\quad\le Q\max\{\phi(z_-),\phi(z_+)\}\\
+&\qquad+\mathbf d^\top(\mathbf C-R\mathbf x).
+\end{aligned}}
+\end{equation}
+
+The bound separates the effects of occupancy tracking, residence-price consistency, and unused capacity associated with positive resource prices.
+
+\subsection{Extension to Adaptive Multipath}
+\label{app:c-3}
+
+For the joint routing-and-rate problem, define path prices
+
+\begin{equation}
+\label{eq:app-c-15}
+c_{i,p}(\boldsymbol\lambda)
+=\sum_\ell A_{\ell,ip}\lambda_\ell,
+\qquad
+v_i=\min_{p\in\mathcal P_i}c_{i,p}(\boldsymbol\lambda)>0.
+\end{equation}
+
+Let
+
+\[
+z_i=\frac{x_iv_i}{q_i},
+\]
+
+and define the excess cost of the selected path allocation as
+
+\begin{equation}
+\label{eq:app-c-16}
+\mathcal R_{\mathrm{path}}
+=
+\sum_{i,p}
+f_{i,p}\big(c_{i,p}(\boldsymbol\lambda)-v_i\big)\ge0.
+\end{equation}
+
+The same dual argument gives
+
+\begin{equation}
+\label{eq:app-c-17}
+\boxed{\begin{aligned}
+&U_{\mathbf q}(\mathbf x^\star)-U_{\mathbf q}(\mathbf x)\\
+&\quad\le\sum_iq_i\phi(z_i)\\
+&\qquad+\boldsymbol\lambda^\top(\mathbf C-A\mathbf f)
++\mathcal R_{\mathrm{path}}.
+\end{aligned}}
+\end{equation}
+
+\begin{proof} In the dual problem, a flow of aggregate rate \(x_i\) can place all its traffic on a minimum-price path, making its effective dual price \(v_i\). The dual function therefore has the form in Equation~\eqref{eq:app-c-9}, with this new \(v_i\). For the actual path allocation,
+
+\[
+\boldsymbol\lambda^\top A\mathbf f
+=
+\sum_ix_iv_i+\mathcal R_{\mathrm{path}}.
+\]
+
+Substituting this identity into the dual gap gives Equation~\eqref{eq:app-c-17}.
+\end{proof}
+
+The three terms in Equation~\eqref{eq:app-c-17} quantify different aspects of allocation quality: correspondence between aggregate flow rates and effective resource prices, unused priced capacity, and the additional price of the paths selected by load balancing.
+
+\subsection{Occupancy-Tracking Error Bound}
+\label{app:c-4}
+
+When the additive residence-price model is exact and the capacity-complementarity conditions hold, a stronger result is available for occupancy-tracking errors alone.
+
+Suppose
+
+\begin{equation}
+\label{eq:app-c-18}
+\overline M_i=q_i(1+e_i)>0.
+\end{equation}
+
+Define normalized target and realized occupancy distributions:
+
+\begin{equation}
+\label{eq:app-c-19}
+p_i=\frac{q_i}{Q},
+\qquad
+\widetilde p_i=
+\frac{q_i(1+e_i)}
+{\sum_jq_j(1+e_j)}.
+\end{equation}
+
+\begin{proposition}[Relative-Occupancy Error Bound]
+\label{prop:c-1}
+Under exact additive residence prices and capacity complementarity,
+
+\begin{equation}
+\label{eq:app-c-20}
+\boxed{
+U_{\mathbf q}(\mathbf x^\star)-U_{\mathbf q}(\mathbf x)
+\le QD_{\mathrm{KL}}(p\Vert\widetilde p).
+}
+\end{equation}
+\end{proposition}
+
+\begin{proof} Let \(\overline e=\sum_ip_ie_i\). The exact price relation gives
+
+\[
+x_i(R^\top\mathbf d)_i=q_i(1+e_i).
+\]
+
+Rescale the prices to \(\boldsymbol\lambda=\mathbf d/(1+\overline e)\). Capacity complementarity is preserved and
+
+\[
+z_i=\frac{1+e_i}{1+\overline e}.
+\]
+
+In Theorem~\ref{thm:c-1}, the unused-capacity term is zero. Furthermore,
+
+\[
+\sum_iq_i(z_i-1)=0.
+\]
+
+Hence the remaining dual-gap bound is
+
+\[
+\begin{aligned}
+-\sum_iq_i\log z_i
+&=Q\log(1+\overline e)-\sum_iq_i\log(1+e_i)\\
+&=QD_{\mathrm{KL}}(p\Vert\widetilde p).
+\end{aligned}
+\]
+
+This proves the proposition.
+\end{proof}
+
+If \(|e_i|\le\epsilon<1\), the second derivative of \(-\log(1+e)\) over this interval is at most \((1-\epsilon)^{-2}\). A second-order Taylor bound therefore gives
+
+\begin{equation}
+\label{eq:app-c-21}
+D_{\mathrm{KL}}(p\Vert\widetilde p)
+\le
+\frac{\operatorname{Var}_p(e)}
+{2(1-\epsilon)^2}.
+\end{equation}
+
+In particular, a common multiplicative occupancy deviation changes the overall residence scale without changing the relative occupancy distribution.
+
+\subsection{Residence Sampling in Dynamic Queues}
+\label{app:c-5}
+
+For a time-varying FIFO queue, a flow's experienced mean waiting time depends on the queue states sampled by its arriving data. Denote by \(V_\ell(t)\) the waiting time experienced by a fluid data unit arriving at link \(\ell\) at time \(t\). If \(a_{i,\ell}(t)\) is the arrival rate of flow \(i\) at that link, its byte-weighted mean waiting time is
+
+\begin{equation}
+\label{eq:app-c-22}
+d_{i,\ell}
+=
+\lim_{H\to\infty}
+\frac{\int_0^H a_{i,\ell}(t)V_\ell(t)\,dt}
+{\int_0^H a_{i,\ell}(t)\,dt}.
+\end{equation}
+
+Stable traffic mixing supplies a sufficient condition for flow-independent link residence.
+
+\begin{proposition}[Flow-Independent Residence under Stable Mixing]
+\label{prop:c-2}
+Suppose the continuous fluid arrival rates at link \(\ell\) satisfy
+
+\begin{equation}
+\label{eq:app-c-23}
+a_{i,\ell}(t)=\theta_{i,\ell}a_\ell(t),
+\qquad \theta_{i,\ell}>0,
+\end{equation}
+
+where \(\theta_{i,\ell}\) is constant over time. Then all participating flows experience the same byte-weighted mean waiting time at link \(\ell\), provided the relevant limits exist.
+\end{proposition}
+
+\begin{proof} Substituting Equation~\eqref{eq:app-c-23} into Equation~\eqref{eq:app-c-22} cancels the constant factor \(\theta_{i,\ell}\), yielding
+
+\[
+d_{i,\ell}
+=
+\lim_{H\to\infty}
+\frac{\int_0^Ha_\ell(t)V_\ell(t)\,dt}
+{\int_0^Ha_\ell(t)\,dt},
+\]
+
+independently of \(i\).
+\end{proof}
+
+This condition allows time-varying queues while preserving a common experienced link residence. It captures the value of sufficiently uniform traffic mixing in the service model.
+
+The distinction between queue behavior and per-flow sampling can be illustrated by a periodic FIFO example. Consider a unit-capacity queue with period 3 and an initial backlog of \(1/4\). Flow B injects 2 units at the start of each period, while flow A injects 1 unit at time \(1/4\). The queue remains nonempty throughout the period. Directly computing the residence of each burst gives
+
+\begin{equation}
+\label{eq:app-c-24}
+x_A=\frac13,\quad D_A=\frac52;
+\qquad
+x_B=\frac23,\quad D_B=\frac54.
+\end{equation}
+
+Consequently,
+
+\begin{equation}
+\label{eq:app-c-25}
+\overline M_A=x_AD_A=\frac56,
+\qquad
+\overline M_B=x_BD_B=\frac56,
+\end{equation}
+
+despite their unequal rates. The difference arises because the two flows sample different phases of the same queueing process. Replicating this construction over synchronized parallel paths preserves the same effect.
+
+Finally, suppose every data unit traversing link \(\ell\) experiences waiting within an interval
+
+\begin{equation}
+\label{eq:app-c-26}
+[d_\ell-\Delta_\ell,\ d_\ell+\Delta_\ell].
+\end{equation}
+
+Then the deviation of each flow's experienced link residence from the reference is bounded by \(\Delta_\ell\). For a fixed resource-usage matrix,
+
+\begin{equation}
+\label{eq:app-c-27}
+\boxed{
+\left|D_i-(R^\top\mathbf d)_i\right|
+\le
+\sum_\ell R_{\ell i}\Delta_\ell.
+}
+\end{equation}
+
+If \(\Delta_\ell\le\rho d_\ell\) on the priced resources, this further implies
+
+\begin{equation}
+\label{eq:app-c-28}
+\left|D_i-(R^\top\mathbf d)_i\right|
+\le\rho(R^\top\mathbf d)_i.
+\end{equation}
+
+Equations~\eqref{eq:app-c-27}–\eqref{eq:app-c-28} connect the variation in experienced queueing residence to the relative-error and utility-gap bounds established earlier in this appendix.
+
+\section{Exact Excess-Occupancy Measurement}
+\label{app:d}
+
+This appendix establishes the correctness and complexity of the excess in-flight observer introduced in \S\ref{sec:observer}. We first derive an exact aggregate representation of excess occupancy, then show how its period average can be reconstructed from a constant amount of transmission history.
+
+\subsection{Unique-Byte Occupancy Accounting}
+\label{app:d-1}
+
+Consider logical flow \(i\). Let \(S_i(t)\) denote cumulative uniquely first-transmitted payload bytes and \(A_i(t)\) denote cumulative uniquely confirmed payload bytes up to time \(t\). Define actual outstanding occupancy as
+
+\begin{equation}
+\label{eq:app-d-1}
+I_i(t)=S_i(t)-A_i(t).
+\end{equation}
+
+For each unique data unit \(b\), let \(v_b\) be its payload size, \(s_b\) its first-transmission time, and \(c_b\) its first unique-confirmation time. Retransmitting a data unit preserves its original identity and first-transmission time.
+
+Assume \(T_0>0\) is a fixed lower bound on first-transmission-to-confirmation residence:
+
+\begin{equation}
+\label{eq:app-d-2}
+c_b-s_b\ge T_0,\qquad \forall b.
+\end{equation}
+
+The actual outstanding occupancy has the byte-level representation
+
+\begin{equation}
+\label{eq:app-d-3}
+I_i(t)=
+\sum_{b\in i}v_b\mathbf 1\{s_b\le t<c_b\}.
+\end{equation}
+
+The excess occupancy counts the subset whose age has reached the baseline time:
+
+\begin{equation}
+\label{eq:app-d-4}
+M_i(t)=
+\sum_{b\in i}v_b
+\mathbf 1\{s_b+T_0\le t<c_b\}.
+\end{equation}
+
+\begin{lemma}[Aggregate Excess-Occupancy Identity]
+\label{lem:d-1}
+Under Equation~\eqref{eq:app-d-2}, the excess occupancy satisfies
+
+\begin{equation}
+\label{eq:app-d-5}
+\boxed{
+M_i(t)=S_i(t-T_0)-A_i(t).
+}
+\end{equation}
+\end{lemma}
+
+\begin{proof} A data unit first transmitted after \(t-T_0\) is younger than the baseline time. By Equation~\eqref{eq:app-d-2}, it cannot have been confirmed by time \(t\). Therefore, the young outstanding occupancy is exactly
+
+\begin{equation}
+\label{eq:app-d-6}
+Y_i(t)=S_i(t)-S_i(t-T_0).
+\end{equation}
+
+The young data constitute a subset of actual outstanding data. Subtracting them gives
+
+\[
+\begin{aligned}
+M_i(t)
+&=I_i(t)-Y_i(t)\\
+&=S_i(t)-A_i(t)
+ -S_i(t)+S_i(t-T_0)\\
+&=S_i(t-T_0)-A_i(t).
+\end{aligned}
+\]
+
+This proves the identity.
+\end{proof}
+
+Equation~\eqref{eq:app-d-5} computes excess occupancy from cumulative unique transmissions and confirmations across all forwarding paths and confirmation orders.
+
+\subsection{Exact Period-Average Reconstruction}
+\label{app:d-2}
+
+The inner controller measures the period-average excess occupancy
+
+\begin{equation}
+\label{eq:app-d-7}
+\widehat M_{i,k}
+=
+\frac1H\int_{t_k}^{t_k+H}M_i(t)\,dt,
+\qquad
+t_k=kH,\quad H=\frac{T_0}{2}.
+\end{equation}
+
+For readability, we omit the flow index below.
+
+Within period \(k\), define the actual outstanding-byte area
+
+\begin{equation}
+\label{eq:app-d-8}
+J_k=\int_{t_k}^{t_k+H}I(t)\,dt.
+\end{equation}
+
+Let \(B_k\) be the uniquely first-transmitted payload bytes in the period, and let \(V_k\) be their first-send time moment:
+
+\begin{equation}
+\label{eq:app-d-9}
+B_k=\sum_{s_b\in[t_k,t_k+H)}v_b,
+\end{equation}
+
+\begin{equation}
+\label{eq:app-d-10}
+V_k=
+\sum_{s_b\in[t_k,t_k+H)}
+v_b(s_b-t_k).
+\end{equation}
+
+To compute the excess area, we subtract the area contributed by young outstanding data. For period \(k\), a data unit contributes young occupancy at time \(t\) exactly when
+
+\begin{equation}
+\label{eq:app-d-11}
+t-T_0<s_b\le t.
+\end{equation}
+
+Because \(T_0=2H\), only transmissions from periods \(k\), \(k-1\), and \(k-2\) can satisfy this condition during the observation interval.
+
+\begin{lemma}[Exact Period-Average Excess Occupancy]
+\label{lem:d-2}
+Under the assumptions of Lemma~\ref{lem:d-1} and \(T_0=2H\),
+
+\begin{equation}
+\label{eq:app-d-12}
+\boxed{
+\widehat M_{i,k}
+=
+\frac{
+J_k-HB_k+V_k-HB_{k-1}-V_{k-2}
+}{H}.
+}
+\end{equation}
+\end{lemma}
+
+\begin{proof} We calculate the young-outstanding area separately for the three possible first-send periods.
+
+For a data unit first transmitted at \(s_b=t_k+u\) during period \(k\), where \(0\le u<H\), its young occupancy persists throughout the remainder of the current period. Its contribution is
+
+\[
+v_b(H-u).
+\]
+
+Summing these contributions gives
+
+\begin{equation}
+\label{eq:app-d-13}
+A_k^{\mathrm{young}}=HB_k-V_k.
+\end{equation}
+
+For a data unit first transmitted in period \(k-1\), its age at the beginning of period \(k\) is between zero and \(H\). It remains younger than \(2H\) throughout the current period. Hence,
+
+\begin{equation}
+\label{eq:app-d-14}
+A_{k-1}^{\mathrm{young}}=HB_{k-1}.
+\end{equation}
+
+Finally, consider a data unit first transmitted at \(s_b=t_{k-2}+u\), with \(0\le u<H\). Its age reaches \(2H\) at time
+
+\[
+s_b+2H=t_k+u.
+\]
+
+It therefore contributes young occupancy for exactly \(u\) time units in period \(k\). Summing gives
+
+\begin{equation}
+\label{eq:app-d-15}
+A_{k-2}^{\mathrm{young}}=V_{k-2}.
+\end{equation}
+
+All earlier transmissions have already reached the baseline age threshold before period \(k\) begins. The total young-outstanding area is therefore
+
+\begin{equation}
+\label{eq:app-d-16}
+\int_{t_k}^{t_k+H}Y(t)\,dt
+=
+HB_k-V_k+HB_{k-1}+V_{k-2}.
+\end{equation}
+
+Since \(M(t)=I(t)-Y(t)\),
+
+\[
+\begin{aligned}
+H\widehat M_k
+&=J_k-\int_{t_k}^{t_k+H}Y(t)\,dt\\
+&=J_k-HB_k+V_k-HB_{k-1}-V_{k-2}.
+\end{aligned}
+\]
+
+Dividing by \(H\) proves Equation~\eqref{eq:app-d-12}.
+\end{proof}
+
+Under the baseline condition of Lemma~\ref{lem:d-1}, reconstruction is exact across transmission times, arrival orders, and path counts.
+
+\subsection{Event Processing and State Complexity}
+\label{app:d-3}
+
+The actual outstanding occupancy \(I(t)\) changes only when unique data is first transmitted or newly confirmed. Between these events, its value remains constant. WAFT therefore maintains the outstanding-byte area by integrating the preceding occupancy over each elapsed interval.
+
+Let \(t_{\mathrm{last}}\) denote the time of the most recently processed event. Before processing an event at time \(t\), the observer performs
+
+\begin{equation}
+\label{eq:app-d-17}
+J\leftarrow J+I(t-t_{\mathrm{last}}),
+\qquad
+t_{\mathrm{last}}\leftarrow t.
+\end{equation}
+
+The event-specific operations are:
+
+\textbf{First transmission.} When \(b\) new payload bytes are first transmitted at time \(t\),
+
+\begin{equation}
+\label{eq:app-d-18}
+\begin{aligned}
+I&\leftarrow I+b,\qquad B_k\leftarrow B_k+b,\\
+V_k&\leftarrow V_k+b(t-t_k).
+\end{aligned}
+\end{equation}
+
+\textbf{Unique confirmation.} When \(b\) previously outstanding unique bytes are confirmed for the first time,
+
+\begin{equation}
+\label{eq:app-d-19}
+I\leftarrow I-b.
+\end{equation}
+
+\textbf{Control-period boundary.} At time \(t_k+H\), the observer first accounts for the elapsed outstanding-byte area using Equation~\eqref{eq:app-d-17}, then computes Equation~\eqref{eq:app-d-12}. It rotates the \(B\) and \(V\) histories and resets the statistics of the new period.
+
+Events timestamped exactly at a period boundary are processed after finalizing the preceding period, consistent with the half-open interval convention \([t_k,t_k+H)\).
+
+Retransmissions do not increase \(B_k\) or \(I\), because they do not introduce new unique data. Duplicate confirmations do not release the same bytes again. With selective acknowledgments, out-of-order data can be uniquely confirmed and released independently of earlier sequence gaps.
+
+These rules preserve the accounting identities used in Lemmas~\ref{lem:d-1} and~\ref{lem:d-2}.
+
+The observer needs only current occupancy and area accumulators, short histories of \(B\) and \(V\), and timing information. The reference implementation stores this information in six 64-bit fields and four 32-bit fields, totaling 64 bytes per flow for the observer.
+
+Each first-send, unique-confirmation, and periodic control event performs a constant number of arithmetic and state-update operations. Thus, with periodic boundary processing, the additional observer complexity is
+
+\begin{equation}
+\label{eq:app-d-20}
+\boxed{\begin{aligned}
+\text{State}&=O(1)\ \text{per flow},\\
+\text{Processing}&=O(1)\ \text{per event}.
+\end{aligned}}
+\end{equation}
+
+These bounds are independent of the number of packets in flight and the number of paths used by the flow.
+
+
+\section{Window Dynamics and Budgets}
+\label{app:e}
+
+This appendix analyzes the normalized excess-occupancy window controller in \S\ref{sec:window} and derives the operating constraints used for budget configuration in \S\ref{sec:budget}.
+
+\subsection{Properties of the Window Update}
+\label{app:e-1}
+
+For a positive target \(q_i\) and a measured excess occupancy \(\widehat M_{i,k}\ge0\), the controller computes
+
+\begin{equation}
+\label{eq:app-e-1}
+e_{i,k}
+=
+\frac{q_i-\widehat M_{i,k}}
+{\max(q_i,\widehat M_{i,k})}
+\end{equation}
+
+and updates the sending window as
+
+\begin{equation}
+\label{eq:app-e-2}
+W_{i,k+1}
+=
+\operatorname{clip}_{[L,\,2W_{i,k}]}
+\left(W_{i,k}(1+ge_{i,k})\right).
+\end{equation}
+
+We assume \(0<g<1\), as in the implemented configuration.
+
+\begin{lemma}[Bounded, Directional Window Adjustment]
+\label{lem:e-1}
+The normalized error and the corresponding unconstrained window update satisfy:
+
+\begin{equation}
+\label{eq:app-e-3}
+-1\le e_{i,k}\le1,
+\end{equation}
+
+\begin{equation}
+\label{eq:app-e-4}
+(1-g)W_{i,k}
+\le W_{i,k}(1+ge_{i,k})
+\le(1+g)W_{i,k}.
+\end{equation}
+
+Moreover, the update increases the window when \(\widehat M_{i,k}<q_i\), decreases it when \(\widehat M_{i,k}>q_i\), and leaves it unchanged when \(\widehat M_{i,k}=q_i\).
+\end{lemma}
+
+\begin{proof} If \(\widehat M_{i,k}\le q_i\), then
+
+\[
+e_{i,k}=1-\frac{\widehat M_{i,k}}{q_i}\in[0,1].
+\]
+
+If \(\widehat M_{i,k}>q_i\), then
+
+\[
+e_{i,k}=\frac{q_i}{\widehat M_{i,k}}-1\in(-1,0).
+\]
+
+These relations establish Equation~\eqref{eq:app-e-3}, the update direction, and Equation~\eqref{eq:app-e-4}.
+\end{proof}
+
+Because \(1-g>0\), the unconstrained multiplicative update preserves a positive window. The lower window bound ensures a minimum admissible payload allowance, while the upper clipping bound limits exceptional growth. For the configured \(g=0.25\), the unconstrained multiplier lies between 0.75 and 1.25.
+
+At a positive interior fixed point, where the clipping bounds are inactive,
+
+\begin{equation}
+\label{eq:app-e-5}
+W_{i,k+1}=W_{i,k}
+\Longleftrightarrow e_{i,k}=0
+\Longleftrightarrow \widehat M_{i,k}=q_i.
+\end{equation}
+
+Thus, the controller's interior fixed points match the occupancy targets required by the allocation principle in \S\ref{sec:signal}.
+
+\subsection{Quasi-Static Shared-Bottleneck Model}
+\label{app:e-2}
+
+To characterize the local dynamics, consider \(n\) continuously backlogged flows sharing a single FIFO service domain with effective capacity \(C\) and common baseline RTT \(T_0\).
+
+Let
+
+\begin{equation}
+\label{eq:app-e-6}
+B=CT_0,\qquad
+S=\sum_iW_i,\qquad
+Q=\sum_iq_i.
+\end{equation}
+
+Assume \(S>B\), all sending windows are filled, and the network reaches a stationary fluid service equilibrium before each control update. Under this model, the aggregate baseline pipeline contains \(B\) bytes and the remaining outstanding occupancy forms a standing queue of size \(S-B\).
+
+The common total confirmation residence is \(S/C\). Each flow's throughput is therefore
+
+\begin{equation}
+\label{eq:app-e-7}
+x_i=C\frac{W_i}{S}.
+\end{equation}
+
+Its excess residence is
+
+\begin{equation}
+\label{eq:app-e-8}
+D=\frac{S-B}{C}.
+\end{equation}
+
+Using the residence–occupancy identity,
+
+\begin{equation}
+\label{eq:app-e-9}
+\boxed{
+M_i(\mathbf W)
+=
+x_iD
+=
+W_i\left(1-\frac BS\right).
+}
+\end{equation}
+
+At a target-matching equilibrium, \(M_i(\mathbf W^\star)=q_i\), so
+
+\begin{equation}
+\label{eq:app-e-10}
+q_i=W_i^\star\left(1-\frac{B}{S^\star}\right).
+\end{equation}
+
+Summing across the flows gives
+
+\[
+Q=S^\star-B.
+\]
+
+Consequently,
+
+\begin{equation}
+\label{eq:app-e-11}
+\boxed{
+S^\star=B+Q,
+\qquad
+W_i^\star=(B+Q)\frac{q_i}{Q}.
+}
+\end{equation}
+
+The corresponding throughput is
+
+\begin{equation}
+\label{eq:app-e-12}
+x_i^\star=C\frac{q_i}{Q}.
+\end{equation}
+
+This equilibrium simultaneously fills the baseline pipeline and maintains the desired excess occupancy.
+
+\subsection{Local Stability of the Window Controller}
+\label{app:e-3}
+
+\begin{theorem}[Quasi-Static Local Stability]
+\label{thm:e-1}
+Consider the network model of \S\ref{app:e-2} and the normalized window update in Equation~\eqref{eq:app-e-2}. Suppose the minimum window and clipping bounds are inactive near \(\mathbf W^\star\). The linearized window-update map has eigenvalues
+
+\begin{equation}
+\label{eq:app-e-13}
+\lambda_{\mathrm{share}}=1-g
+\end{equation}
+
+with multiplicity \(n-1\), and
+
+\begin{equation}
+\label{eq:app-e-14}
+\lambda_{\mathrm{aggregate}}
+=
+1-g\frac{B+Q}{Q}.
+\end{equation}
+
+The linearized dynamics are asymptotically stable if and only if
+
+\begin{equation}
+\label{eq:app-e-15}
+\boxed{
+0<g<\frac{2Q}{B+Q}.
+}
+\end{equation}
+\end{theorem}
+
+\begin{proof} We first differentiate the occupancy expression in Equation~\eqref{eq:app-e-9}. Since \(S=\sum_jW_j\),
+
+\begin{equation}
+\label{eq:app-e-16}
+\frac{\partial M_i}{\partial W_j}
+=
+\left(1-\frac BS\right)\mathbf 1\{i=j\}
++
+\frac{BW_i}{S^2}.
+\end{equation}
+
+At the equilibrium,
+
+\begin{equation}
+\label{eq:app-e-17}
+1-\frac{B}{S^\star}=\frac{Q}{S^\star}.
+\end{equation}
+
+The normalized error in Equation~\eqref{eq:app-e-1} is continuously differentiable at \(\widehat M_i=q_i>0\), with derivative
+
+\begin{equation}
+\label{eq:app-e-18}
+\left.
+\frac{\partial e_i}{\partial M_i}
+\right|_{M_i=q_i}
+=-\frac1{q_i}.
+\end{equation}
+
+Ignoring inactive clipping, write the window-update map as
+
+\[
+F_i(\mathbf W)=W_i[1+ge_i(\mathbf W)].
+\]
+
+At \(\mathbf W^\star\), \(e_i=0\), and the Jacobian is
+
+\begin{equation}
+\label{eq:app-e-19}
+\begin{aligned}
+\frac{\partial F_i}{\partial W_j}
+&=\mathbf 1\{i=j\}
+-g\frac{W_i^\star}{q_i}
+\frac{\partial M_i}{\partial W_j}\\
+&=(1-g)\mathbf 1\{i=j\}
+-\frac{gB W_i^\star}{QS^\star}.
+\end{aligned}
+\end{equation}
+
+In matrix form,
+
+\begin{equation}
+\label{eq:app-e-20}
+\boxed{
+J=(1-g)I
+-\frac{gB}{QS^\star}\,
+\mathbf W^\star\mathbf 1^\top.
+}
+\end{equation}
+
+This matrix is a rank-one perturbation of \((1-g)I\).
+
+For any perturbation \(\mathbf v\) satisfying \(\mathbf 1^\top\mathbf v=0\), the rank-one term vanishes:
+
+\[
+J\mathbf v=(1-g)\mathbf v.
+\]
+
+These \(n-1\) directions represent changes in relative window shares that leave the aggregate window unchanged to first order. They have eigenvalue \(1-g\).
+
+For the remaining direction, use \(\mathbf W^\star\) itself:
+
+\[
+\begin{aligned}
+J\mathbf W^\star
+&=
+\left(
+1-g-\frac{gB}{Q}
+\right)\mathbf W^\star\\
+&=
+\left(
+1-g\frac{B+Q}{Q}
+\right)\mathbf W^\star.
+\end{aligned}
+\]
+
+This gives the aggregate-window eigenvalue in Equation~\eqref{eq:app-e-14}.
+
+The linearized map is asymptotically stable exactly when all eigenvalues lie strictly inside the unit circle. The share eigenvalue requires \(0<g<2\). The aggregate eigenvalue requires
+
+\[
+-1<
+1-g\frac{B+Q}{Q}
+<1,
+\]
+
+which is equivalent to Equation~\eqref{eq:app-e-15}. Since \(2Q/(B+Q)<2\), this condition also satisfies the share-mode requirement.
+\end{proof}
+
+The two eigenvalues describe different aspects of the control dynamics. The share mode governs the correction of relative bandwidth allocations, while the aggregate mode governs changes in total outstanding occupancy.
+
+At the reference operating point \(Q=B\), the stability interval is \(0<g<1\). With the configured \(g=0.25\),
+
+\begin{equation}
+\label{eq:app-e-21}
+\lambda_{\mathrm{share}}=0.75,
+\qquad
+\lambda_{\mathrm{aggregate}}=0.5.
+\end{equation}
+
+Equation~\eqref{eq:app-e-15} also connects gain selection to budget size. For a fixed gain, reducing \(Q\) relative to the baseline BDP \(B\) narrows the local stability interval. Under \(g=0.25\), the quasi-static stability condition becomes \(Q>B/7\).
+
+The strict gain condition therefore establishes local asymptotic stability for the quasi-static window-update map.
+
+\subsection{Budget Calibration and Resolution}
+\label{app:e-4}
+
+WAFT installs nominal occupancy targets
+
+\begin{equation}
+\label{eq:app-e-22}
+q_i=aw_i,
+\end{equation}
+
+where \(a>0\) is the common unit budget and \(w_i>0\) is the application weight.
+
+For a common service capacity \(C\) and active weight sum \(\Omega=\sum_iw_i\), target matching gives
+
+\begin{equation}
+\label{eq:app-e-23}
+D=\frac{a\Omega}{C}.
+\end{equation}
+
+Thus, the unit budget determines the expected excess residence scale. For planned active weight \(\Omega_{\mathrm{plan}}\) and mean residence objective \(R_{\mathrm{ref}}>T_0\), choose
+
+\begin{equation}
+\label{eq:app-e-24}
+a_{\mathrm{ref}}
+=
+\frac{C(R_{\mathrm{ref}}-T_0)}
+{\Omega_{\mathrm{plan}}}.
+\end{equation}
+
+For a network with multiple planned capacity constraints, let \(p_{i\ell}\) be the planned traffic fraction of flow \(i\) using resource \(\ell\). Define
+
+\begin{equation}
+\label{eq:app-e-25}
+s_{\mathrm{plan}}
+=
+\min_\ell
+\frac{C_\ell}{\sum_i p_{i\ell}w_i}.
+\end{equation}
+
+Then \(x_i=s_{\mathrm{plan}}w_i\) satisfies the declared link-capacity constraints, and the corresponding reference budget is
+
+\begin{equation}
+\label{eq:app-e-26}
+a_{\mathrm{ref}}
+=
+s_{\mathrm{plan}}(R_{\mathrm{ref}}-T_0).
+\end{equation}
+
+We next derive a sufficient operating bound that accounts for imperfect capacity utilization and occupancy tracking.
+
+Suppose the usable service capacity is conservatively modeled by a factor \(1-\upsilon\), where \(0\le\upsilon<1\), and the realized excess occupancy is at most \((1+\epsilon_q)\) times its nominal target. To keep the modeled mean residence, including an allowance \(h\), below the normal boundary \(\beta\), a sufficient budget ceiling is
+
+\begin{equation}
+\label{eq:app-e-27}
+\boxed{
+a\le a_{\mathrm{hi}}
+=
+\frac{1-\upsilon}{1+\epsilon_q}
+s_{\mathrm{plan}}(\beta-T_0-h).
+}
+\end{equation}
+
+The precision requirement provides a complementary lower bound. Let \(b_i\) be a calibrated upper bound on the absolute mean-stock tracking deviation of flow \(i\) in the intended operating region. To ensure
+
+\begin{equation}
+\label{eq:app-e-28}
+\frac{|\overline M_i-aw_i|}{aw_i}\le\epsilon_q,
+\end{equation}
+
+it suffices to choose
+
+\begin{equation}
+\label{eq:app-e-29}
+\boxed{
+a\ge a_{\mathrm{lo}}
+=
+\max_i\frac{b_i}{\epsilon_qw_i}.
+}
+\end{equation}
+
+For a common absolute tracking deviation scale \(b\), two configured weights separated by \(\delta_w\) have target occupancies separated by \(a\delta_w\). Requiring
+
+\begin{equation}
+\label{eq:app-e-30}
+a\delta_w\ge2b
+\end{equation}
+
+ensures that their nominal occupancy separation is at least the maximum sum of their opposing tracking deviations.
+
+Together, Equations~\eqref{eq:app-e-27} and \eqref{eq:app-e-29} define the feasible planning interval
+
+\begin{equation}
+\label{eq:app-e-31}
+a_{\mathrm{lo}}\le a\le a_{\mathrm{hi}}.
+\end{equation}
+
+A deployment can select a point near \(a_{\mathrm{ref}}\) within this interval. This offline calibration uses the intended capacity, concurrent weights, minimum flow weight, control period, and packet-size configuration.
+
+
+\section{RTT-Guided Congestion Protection}
+\label{app:f}
+
+This appendix analyzes the slower protection layer introduced in \S\ref{sec:protection}. The analysis establishes how the budget mapping changes bandwidth sharing, characterizes the direction of RTT-driven updates, and proves the existence and local stability of the protected equilibrium under a quasi-static common-service model.
+
+\subsection{RTT Feedback and Budget Mapping}
+\label{app:f-1}
+
+Let \(T_0\) be the common baseline RTT of the considered service domain. WAFT configures two mean-RTT thresholds
+
+\begin{equation}
+\label{eq:app-f-1}
+T_0<\beta<\gamma,
+\end{equation}
+
+where \(\beta\) is the normal-service boundary and \(\gamma\) is the asymptotic protected mean-RTT objective.
+
+For each protection epoch \(k\), the sender forms the byte-weighted RTT measurement
+
+\begin{equation}
+\label{eq:app-f-2}
+\overline R_{i,k}
+=
+\frac{\sum_jb_jR_j}{\sum_jb_j},
+\end{equation}
+
+using valid samples associated with newly confirmed unique payload bytes. Samples whose first-transmission time is ambiguous because of retransmission are excluded.
+
+The epoch duration is
+
+\begin{equation}
+\label{eq:app-f-3}
+E_{i,k}=2\max(\overline R_{i,k-1},T_0).
+\end{equation}
+
+If an epoch contains no valid RTT samples, the current protection scale is retained.
+
+The service policy specifies
+
+\begin{equation}
+\label{eq:app-f-4}
+0<w_{\min}\le w_i\le w_{\max}.
+\end{equation}
+
+Let
+
+\begin{equation}
+\label{eq:app-f-5}
+u_i=\frac{w_i}{w_{\min}}\ge1,
+\qquad
+U=\frac{w_{\max}}{w_{\min}}.
+\end{equation}
+
+Each flow maintains a scale \(s_i\in(0,1]\). Its occupancy target is
+
+\begin{equation}
+\label{eq:app-f-6}
+\boxed{
+q_i(s_i)=aw_{\min}s_i u_i^{s_i}.
+}
+\end{equation}
+
+\paragraph{Monotonicity and weight compression.}
+
+\begin{lemma}[Joint Budget Reduction and Weight Compression]
+\label{lem:f-1}
+The budget mapping in Equation~\eqref{eq:app-f-6} satisfies:
+
+\begin{enumerate}
+\item \(q_i(1)=aw_i\).
+\item \(q_i(s_i)\) is strictly increasing in \(s_i\in(0,1]\).
+\item When competing flows use a common scale \(s\) and experience common excess residence, their rate ratio satisfies
+
+\begin{equation}
+\label{eq:app-f-7}
+\frac{x_i}{x_j}
+=
+\left(\frac{w_i}{w_j}\right)^s.
+\end{equation}
+\end{enumerate}
+\end{lemma}
+
+\begin{proof} Substituting \(s_i=1\) gives \(q_i(1)=aw_{\min}u_i=aw_i\). Differentiating yields
+
+\begin{equation}
+\label{eq:app-f-8}
+\frac{dq_i}{ds_i}
+=
+aw_{\min}u_i^{s_i}
+(1+s_i\ln u_i)>0,
+\end{equation}
+
+because \(u_i\ge1\) and \(s_i>0\). Therefore, reducing the scale reduces the target occupancy.
+
+Under common excess residence \(D\) and accurate tracking, \(x_iD=q_i(s)\). Taking the ratio for two flows cancels \(aw_{\min}s/D\), leaving
+
+\[
+\frac{x_i}{x_j}
+=
+\frac{u_i^s}{u_j^s}
+=
+\left(\frac{w_i}{w_j}\right)^s.
+\]
+
+This proves the third property.
+\end{proof}
+
+For any fixed weight ratio \(w_i/w_j>1\), the exponent \(s\) continuously reduces the rate disparity. The ratio approaches one as \(s\to0\). At the same time, the absolute occupancy target of every flow decreases.
+
+The mapping is also invariant to the arbitrary unit used for application weights. Replacing all \(w_i,w_{\min},w_{\max}\) by \(c\) times their values and replacing \(a\) by \(a/c\) leaves both \(u_i\) and Equation~\eqref{eq:app-f-6} unchanged.
+
+In a general multi-bottleneck network satisfying the additive congestion-price conditions of Appendix~\ref{app:a}, a common positive scale \(s\) induces the utility weights \(u_i^s\). As \(s\to0\), these coefficients approach one, and the allocation objective approaches unweighted proportional fairness over the corresponding routing feasible region. Equal throughput follows in the shared-capacity-pool case.
+
+\subsection{Direction of the RTT-Driven Scale Update}
+\label{app:f-2}
+
+Define
+
+\begin{equation}
+\label{eq:app-f-9}
+z_{i,k}
+=
+\max\left(0,\frac{\overline R_{i,k}}{T_0}-1\right),
+\end{equation}
+
+\begin{equation}
+\label{eq:app-f-10}
+G=\frac{\gamma-T_0}{T_0},
+\qquad
+\Delta=\frac{\gamma-\beta}{T_0}.
+\end{equation}
+
+Because \(T_0<\beta<\gamma\), we have \(0<\Delta<G\).
+
+For scale \(s_{i,k}\), WAFT computes
+
+\begin{equation}
+\label{eq:app-f-11}
+p_{i,k}
+=
+\min\left\{
+1,\frac{s_{i,k}G}{z_{i,k}+\Delta s_{i,k}}
+\right\},
+\end{equation}
+
+then applies
+
+\begin{equation}
+\label{eq:app-f-12}
+\boxed{
+s_{i,k+1}
+=
+s_{i,k}^{1-\eta}p_{i,k}^{\eta},
+\qquad 0<\eta\le1.
+}
+\end{equation}
+
+The geometric interpolation preserves \(0<s_{i,k+1}\le1\).
+
+\begin{lemma}[RTT-Dependent Update Direction]
+\label{lem:f-2}
+For any interior scale \(0<s_i<1\),
+
+\begin{equation}
+\label{eq:app-f-13}
+s_i^+<s_i
+\quad\Longleftrightarrow\quad
+\overline R_i>
+\gamma-(\gamma-\beta)s_i,
+\end{equation}
+
+and
+
+\begin{equation}
+\label{eq:app-f-14}
+s_i^+>s_i
+\quad\Longleftrightarrow\quad
+\overline R_i<
+\gamma-(\gamma-\beta)s_i.
+\end{equation}
+
+At \(s_i=1\), the scale begins to decrease when \(\overline R_i>\beta\). For any positive scale, \(\overline R_i\ge\gamma\) implies a strict decrease.
+\end{lemma}
+
+\begin{proof} Since the geometric update lies strictly between \(s_i\) and \(p_i\) when they differ, the sign of \(s_i^+-s_i\) is the sign of \(p_i-s_i\).
+
+For \(0<s_i<1\), clipping \(p_i\) at one does not change this sign. Hence,
+
+\[
+p_i<s_i
+\Longleftrightarrow
+\frac{s_iG}{z_i+\Delta s_i}<s_i
+\Longleftrightarrow
+z_i+\Delta s_i>G.
+\]
+
+Substituting the definitions of \(z_i\), \(G\), and \(\Delta\) gives Equation~\eqref{eq:app-f-13}. The reverse inequality gives Equation~\eqref{eq:app-f-14}.
+
+At \(s_i=1\), a decrease occurs when \(z_i+\Delta>G\), or equivalently \(\overline R_i>\beta\). When \(\overline R_i\ge\gamma\), \(z_i\ge G\), so
+
+\[
+\frac{s_iG}{z_i+\Delta s_i}<s_i
+\]
+
+for every \(s_i>0\).
+\end{proof}
+
+These relations define a continuous protection boundary,
+
+\begin{equation}
+\label{eq:app-f-15}
+R_{\mathrm{target}}(s)
+=
+\gamma-(\gamma-\beta)s.
+\end{equation}
+
+It equals \(\beta\) at the nominal scale \(s=1\) and approaches \(\gamma\) as \(s\to0\).
+
+\paragraph{Consistency of independently maintained scales.}
+
+Suppose several senders observe the same constant RTT \(R\) and reach positive interior fixed points. At an interior fixed point, Equation~\eqref{eq:app-f-12} requires \(p_i=s_i\). The unclipped part of Equation~\eqref{eq:app-f-11} then gives
+
+\begin{equation}
+\label{eq:app-f-16}
+z+\Delta s_i=G.
+\end{equation}
+
+Because \(z\) is common, each interior fixed point has the same scale
+
+\begin{equation}
+\label{eq:app-f-17}
+s_i=\frac{G-z}{\Delta}.
+\end{equation}
+
+Thus, common constant RTT feedback yields equal interior fixed-point scales across senders.
+
+\subsection{Unique Protected Equilibrium}
+\label{app:f-3}
+
+Consider a service domain with effective capacity \(C\). Assume all participating flows experience the same RTT \(R\), have a common scale \(s\), accurately track the occupancy targets in Equation~\eqref{eq:app-f-6}, and collectively utilize the capacity.
+
+Define
+
+\begin{equation}
+\label{eq:app-f-18}
+K(s)=\sum_i u_i^s.
+\end{equation}
+
+The aggregate occupancy target is
+
+\begin{equation}
+\label{eq:app-f-19}
+Q(s)=aw_{\min}sK(s).
+\end{equation}
+
+Using occupancy conservation and full capacity utilization,
+
+\begin{equation}
+\label{eq:app-f-20}
+R=T_0+\frac{Q(s)}{C}
+=T_0+\frac{aw_{\min}}{C}sK(s).
+\end{equation}
+
+The resulting bandwidth allocation is
+
+\begin{equation}
+\label{eq:app-f-21}
+x_i=C\frac{u_i^s}{K(s)}.
+\end{equation}
+
+Let
+
+\begin{equation}
+\label{eq:app-f-22}
+R_{\mathrm{nom}}
+=
+T_0+\frac{a\sum_iw_i}{C}
+\end{equation}
+
+be the nominal mean residence at \(s=1\).
+
+\begin{theorem}[Unique Protected Equilibrium]
+\label{thm:f-1}
+Under the model above:
+
+\begin{enumerate}
+\item If \(R_{\mathrm{nom}}\le\beta\), the nominal scale \(s=1\) is the unique positive equilibrium.
+\item If \(R_{\mathrm{nom}}>\beta\), there exists a unique interior equilibrium \(s^\star\in(0,1)\). Its mean RTT satisfies
+
+\begin{equation}
+\label{eq:app-f-23}
+\boxed{
+\beta<R^\star<\gamma.
+}
+\end{equation}
+\end{enumerate}
+\end{theorem}
+
+\begin{proof} At the nominal scale \(s=1\), the update remains clipped to \(p=1\) when \(R_{\mathrm{nom}}\le\beta\), so \(s=1\) is a fixed point. Since the residence in Equation~\eqref{eq:app-f-20} increases with \(s\), an interior fixed point would require \(R(s)>\beta\), which is impossible when \(R_{\mathrm{nom}}\le\beta\). Thus, the nominal equilibrium is unique.
+
+For \(R_{\mathrm{nom}}>\beta\), an interior fixed point satisfies Lemma~\ref{lem:f-2}: 
+
+\begin{equation}
+\label{eq:app-f-24}
+R=\gamma-(\gamma-\beta)s.
+\end{equation}
+
+Combining this equation with Equation~\eqref{eq:app-f-20} yields
+
+\begin{equation}
+\label{eq:app-f-25}
+F(s):=
+\frac{aw_{\min}}{C}sK(s)
++(\gamma-\beta)s
+=\gamma-T_0.
+\end{equation}
+
+Because every \(u_i\ge1\),
+
+\[
+F(0)=0,
+\]
+
+and
+
+\begin{equation}
+\label{eq:app-f-26}
+F'(s)
+=
+\frac{aw_{\min}}{C}
+\sum_i u_i^s(1+s\ln u_i)
++(\gamma-\beta)>0.
+\end{equation}
+
+Furthermore,
+
+\begin{equation}
+\label{eq:app-f-27}
+F(1)
+=R_{\mathrm{nom}}-T_0+\gamma-\beta
+>\gamma-T_0.
+\end{equation}
+
+Continuity and strict monotonicity of \(F\) give a unique solution \(s^\star\in(0,1)\) to Equation~\eqref{eq:app-f-25}. Equation~\eqref{eq:app-f-24} then gives
+
+\[
+R^\star
+=\gamma-(\gamma-\beta)s^\star.
+\]
+
+The bounds \(0<s^\star<1\) imply \(\beta<R^\star<\gamma\).
+\end{proof}
+
+The upper threshold \(\gamma\) is the limiting mean-residence target of this quasi-static model.
+
+\subsection{Scaling with Incast Competition}
+\label{app:f-4}
+
+The equilibrium relation also characterizes how the protection layer responds as the number of competing flows increases.
+
+Consider a fixed set of relative weights that is replicated \(m\) times in the same service domain. Let \(K_0(s)\) denote the normalized-weight sum of one copy. Then
+
+\begin{equation}
+\label{eq:app-f-28}
+K_m(s)=mK_0(s).
+\end{equation}
+
+In the protected regime, the equilibrium scale \(s_m^\star\) solves
+
+\begin{equation}
+\label{eq:app-f-29}
+\frac{aw_{\min}}{C}
+m s_m^\star K_0(s_m^\star)
++(\gamma-\beta)s_m^\star
+=\gamma-T_0.
+\end{equation}
+
+\begin{proposition}[Overload Scaling]
+\label{prop:f-1}
+Under the replicated-weight model, the unique protected scale decreases as \(m\) increases. As \(m\to\infty\),
+
+\begin{equation}
+\label{eq:app-f-30}
+s_m^\star\longrightarrow0,
+\qquad
+R_m^\star\longrightarrow\gamma.
+\end{equation}
+
+Consequently, the relative rate of any two fixed weight classes approaches one, and
+
+\begin{equation}
+\label{eq:app-f-31}
+Q_m^\star\longrightarrow C(\gamma-T_0).
+\end{equation}
+\end{proposition}
+
+\begin{proof} For every fixed \(s>0\), the left-hand side of Equation~\eqref{eq:app-f-29} increases strictly with \(m\). Since it is also strictly increasing in \(s\), the unique root \(s_m^\star\) must decrease with \(m\).
+
+If \(s_m^\star\) converged to a positive value, the term proportional to \(m\) in Equation~\eqref{eq:app-f-29} would diverge, contradicting its finite right-hand side. Hence \(s_m^\star\to0\).
+
+Using the equilibrium RTT relation,
+
+\[
+R_m^\star
+=\gamma-(\gamma-\beta)s_m^\star
+\longrightarrow\gamma.
+\]
+
+Equation~\eqref{eq:app-f-7} gives
+
+\[
+\frac{x_i}{x_j}
+=\left(\frac{w_i}{w_j}\right)^{s_m^\star}
+\longrightarrow1.
+\]
+
+Finally, aggregate occupancy conservation gives
+
+\[
+Q_m^\star=C(R_m^\star-T_0)
+\longrightarrow C(\gamma-T_0).
+\]
+
+This proves the proposition.
+\end{proof}
+
+For \(N\) backlogged flows, the normalized throughput of flow \(i\), relative to equal sharing, is
+
+\begin{equation}
+\label{eq:app-f-32}
+\frac{x_i}{C/N}
+=
+\frac{Nu_i^s}{\sum_ju_j^s}.
+\end{equation}
+
+Using \(1\le u_i\le U\),
+
+\begin{equation}
+\label{eq:app-f-33}
+\boxed{
+\frac{x_i}{C/N}\ge U^{-s}.
+}
+\end{equation}
+
+As \(s\to0\), the lower bound approaches one. Thus, the protection mechanism reduces occupancy while progressively reducing the relative service disparity between weight classes.
+
+In incasts containing low-weight short transfers, this compression increases their service relative to the nominal weighted allocation under the common-service model.
+
+\subsection{Budget-Layer Stability}
+\label{app:f-5}
+
+Consider an interior protected equilibrium under the following quasi-static model:
+
+\begin{itemize}
+\item The inner occupancy controller reaches its target equilibrium before each budget update.
+\item All flows share the same service RTT and the same baseline RTT.
+\item The budget epochs are synchronized for the purpose of the stability analysis.
+\item The underlying common service domain remains fully utilized.
+\end{itemize}
+
+Individual scales are allowed to undergo distinct perturbations.
+
+Define
+
+\begin{equation}
+\label{eq:app-f-34}
+v=\frac{aw_{\min}}{CT_0},
+\qquad
+y_i=\ln s_i.
+\end{equation}
+
+The normalized excess residence is
+
+\begin{equation}
+\label{eq:app-f-35}
+z=v\sum_j s_ju_j^{s_j}.
+\end{equation}
+
+Near an interior equilibrium, the candidate scale is not clipped at one. Taking logarithms of the geometric update gives
+
+\begin{equation}
+\label{eq:app-f-36}
+y_i^+
+=
+y_i+\eta
+\left[
+\ln G-\ln(z+\Delta e^{y_i})
+\right].
+\end{equation}
+
+At the common-scale equilibrium \(s_i=s\),
+
+\begin{equation}
+\label{eq:app-f-37}
+z+\Delta s=G.
+\end{equation}
+
+\begin{theorem}[Quasi-Static Local Stability of Protection]
+\label{thm:f-2}
+Let \(s\in(0,1)\) be the unique protected equilibrium of Theorem~\ref{thm:f-1}. Define
+
+\begin{equation}
+\label{eq:app-f-38}
+r_j=s u_j^s(1+s\ln u_j).
+\end{equation}
+
+The Jacobian of the logarithmic scale-update map is
+
+\begin{equation}
+\label{eq:app-f-39}
+\boxed{
+J=
+\left(1-\frac{\eta\Delta s}{G}\right)I
+-\frac{\eta v}{G}\mathbf 1\mathbf r^\top.
+}
+\end{equation}
+
+Its eigenvalues are
+
+\begin{equation}
+\label{eq:app-f-40}
+\lambda_{\mathrm{diff}}
+=
+1-\frac{\eta\Delta s}{G},
+\end{equation}
+
+with multiplicity \(N-1\), and
+
+\begin{equation}
+\label{eq:app-f-41}
+\lambda_{\mathrm{scale}}
+=
+1-\eta
+\left[
+1+
+\left(1-\frac{\Delta s}{G}\right)
+s\frac{\sum_j u_j^s\ln u_j}{K(s)}
+\right].
+\end{equation}
+
+The equilibrium is locally asymptotically stable when
+
+\begin{equation}
+\label{eq:app-f-42}
+\boxed{
+0<\eta\le
+\min\left\{\frac12,\frac1{1+\ln U}\right\}.
+}
+\end{equation}
+\end{theorem}
+
+\begin{proof} From Equation~\eqref{eq:app-f-35},
+
+\begin{equation}
+\label{eq:app-f-43}
+\frac{\partial z}{\partial y_j}
+=
+v s_ju_j^{s_j}(1+s_j\ln u_j).
+\end{equation}
+
+At the common equilibrium, this becomes \(vr_j\). Differentiating Equation~\eqref{eq:app-f-36}, and using \(z+\Delta s=G\), gives
+
+\[
+\frac{\partial y_i^+}{\partial y_j}
+=
+\left(1-\frac{\eta\Delta s}{G}\right)\mathbf 1\{i=j\}
+-\frac{\eta v}{G}r_j,
+\]
+
+which proves Equation~\eqref{eq:app-f-39}.
+
+The matrix is a rank-one perturbation of a scalar multiple of the identity. Perturbations orthogonal to \(\mathbf r\) have eigenvalue \(\lambda_{\mathrm{diff}}\). The remaining eigenvalue is
+
+\[
+\begin{aligned}
+\lambda_{\mathrm{scale}}
+&=
+1-\frac{\eta\Delta s}{G}
+-\frac{\eta v}{G}\sum_jr_j\\
+&=
+1-\eta
+\left[
+1+
+\left(1-\frac{\Delta s}{G}\right)
+s\frac{\sum_j u_j^s\ln u_j}{K(s)}
+\right],
+\end{aligned}
+\]
+
+where the second equality follows from
+
+\[
+z=v s K(s)=G-\Delta s.
+\]
+
+Since \(0<\Delta s/G<1\), the difference-mode eigenvalue satisfies \(0<\lambda_{\mathrm{diff}}<1\) under Equation~\eqref{eq:app-f-42}.
+
+Also, \(0\le\ln u_j\le\ln U\). Therefore,
+
+\[
+1\le
+1+
+\left(1-\frac{\Delta s}{G}\right)
+s\frac{\sum_j u_j^s\ln u_j}{K(s)}
+\le1+\ln U.
+\]
+
+The bound on \(\eta\) in Equation~\eqref{eq:app-f-42} consequently gives
+
+\[
+0\le\lambda_{\mathrm{scale}}<1.
+\]
+
+All eigenvalues lie inside the unit circle, so the equilibrium is locally asymptotically stable.
+\end{proof}
+
+This gain bound establishes local contraction of independent scale perturbations in the quasi-static budget-layer model.
+
+\subsection{Normal and Protected Regions}
+\label{app:f-6}
+
+The normal unit budget and protection thresholds should be configured consistently.
+
+For planned active weight sum \(\Omega_{\mathrm{plan}}\), conservative effective capacity \(C_{\min}\), and calibrated latency headroom \(h\), the nominal operating point is selected to satisfy
+
+\begin{equation}
+\label{eq:app-f-44}
+\boxed{
+T_0+
+\frac{a\Omega_{\mathrm{plan}}}{C_{\min}}
++h
+\le\beta<\gamma.
+}
+\end{equation}
+
+The first inequality places planned weighted service inside the normal operating region. The second assigns a larger mean-RTT target to the overload-protection region.
+
+The parameters \(a,T_0,w_{\min},w_{\max},\beta,\gamma,\eta\) are configured without requiring online knowledge of the active competing weight sum. The outer loop continuously adjusts its scale from local valid RTT observations, and the inner window controller tracks the resulting occupancy budget.

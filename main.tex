@@ -1,7 +1,19 @@
 \documentclass[letterpaper,twocolumn,10pt]{article}
 \usepackage{usenix2019_v3}
 \usepackage{amsmath}
+\usepackage{amssymb,amsthm}
+\usepackage{booktabs,tabularx}
 \usepackage{graphicx}
+\hypersetup{hidelinks}
+% The bundled flushend version can loop while balancing a final equation.
+\AtBeginDocument{\raggedend}
+\frenchspacing
+
+\theoremstyle{definition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
 
 % OSDI '27 asks for page numbers on submitted papers. The USENIX style
 % leaves the article class's plain page style enabled by default.
@@ -9,7 +21,7 @@
 
 \begin{document}
 \date{}
-\title{Your Paper Title}
+\title{WAFT: Path-Oblivious Weighted Bandwidth Allocation}
 
 % OSDI '27 uses double-blind review. Keep author names and identifying
 % acknowledgments out of the submission draft. Update this for the final paper.
@@ -23,6 +35,7 @@
 
 \input{sections/introduction}
 \input{sections/background}
+\input{sections/signal}
 \input{sections/design}
 \input{sections/implementation}
 \input{sections/evaluation}
@@ -33,7 +46,15 @@
 % Add acknowledgments only to the non-anonymous camera-ready version.
 % \input{sections/acknowledgments}
 
-\bibliographystyle{plain}
-\bibliography{refs}
+% Bibliography omitted while reference entries are being prepared.
+
+\clearpage
+\appendix
+\numberwithin{equation}{section}
+\numberwithin{lemma}{section}
+\numberwithin{proposition}{section}
+\numberwithin{theorem}{section}
+\numberwithin{corollary}{section}
+\input{sections/appendix}
 
 \end{document}

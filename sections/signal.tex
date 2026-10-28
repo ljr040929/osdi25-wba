@@ -1,0 +1,135 @@
+\section{Bandwidth Sharing via Excess In-Flight}
+\label{sec:signal}
+
+Excess in-flight occupancy measures the data that remain unconfirmed beyond a baseline round-trip time. This flow-level quantity links aggregate resource residence to throughput. We derive the conservation identity, use it to establish bandwidth shares, and extend the result to multipath service.
+
+\subsection{Excess In-Flight and Network Residence}
+\label{sec:residence}
+
+A continuously transmitting flow maintains outstanding data to fill the network pipeline. Even without congestion, its packets remain in flight for a baseline round-trip time. At throughput \(x_i\), this baseline pipeline accounts for an average of \(x_iT_{0,i}\) bytes, where \(T_{0,i}\) is a lower bound on the first-transmission-to-confirmation time of flow \(i\). Additional network residence causes some data to remain unconfirmed beyond this baseline, creating an \emph{excess} component of in-flight occupancy.
+
+We define the excess in-flight occupancy of flow \(i\) as the amount of its outstanding data whose age has reached \(T_{0,i}\). Let \(S_i(t)\) and \(A_i(t)\) denote the cumulative uniquely first-transmitted and uniquely confirmed payload bytes, respectively. Since data first transmitted within the preceding \(T_{0,i}\) cannot yet have been confirmed, the excess occupancy is
+
+\begin{equation}
+\label{eq:signal-1}
+\boxed{
+M_i(t)=S_i(t-T_{0,i})-A_i(t).
+}
+\end{equation}
+
+The quantity \(M_i(t)\) is defined over the entire logical flow. It captures data residence across all paths using aggregate sending and acknowledgment information, independently of packet-path identities.
+
+\begin{lemma}[Excess In-Flight Conservation]
+\label{lem:main-1}
+For a stable flow with long-term unique-payload throughput \(x_i\) and byte-weighted mean confirmation residence \(T_i\), the time-average excess occupancy satisfies
+
+\begin{equation}
+\label{eq:signal-2}
+\boxed{
+\overline M_i=x_iD_i,
+\qquad D_i=T_i-T_{0,i},
+}
+\end{equation}
+
+provided the long-term averages exist and boundary effects vanish.
+\end{lemma}
+
+\begin{proof}[Proof sketch] Each uniquely transmitted byte contributes to excess occupancy for the portion of its confirmation residence exceeding \(T_{0,i}\). Summing these byte-time contributions and averaging over a sufficiently long interval gives Equation~\eqref{eq:signal-2}. Appendix~\ref{app:a} provides the complete proof.
+\end{proof}
+
+The identity decomposes average outstanding data into baseline pipeline occupancy and excess occupancy:
+
+\begin{equation}
+\label{eq:signal-3}
+\overline I_i=x_iT_{0,i}+\overline M_i.
+\end{equation}
+
+In the loss-free operating region, residence beyond the baseline primarily reflects network queueing and supplies a flow-level signal for bandwidth sharing.
+
+\subsection{Occupancy and Bandwidth Shares}
+\label{sec:shares}
+
+Consider backlogged flows sharing a bottleneck of capacity \(C\). Assume work-conserving service and a common mean excess residence \(D>0\), as at a FIFO bottleneck with a constant positive fluid queue. Lemma~\ref{lem:main-1} then gives
+
+\begin{equation}
+\label{eq:signal-4}
+x_i=\frac{\overline M_i}{D},
+\qquad
+\frac{x_i}{x_j}=\frac{\overline M_i}{\overline M_j}.
+\end{equation}
+
+Under common excess residence, relative excess occupancies determine relative bandwidth shares. For example, two flows maintaining excess occupancies in a ratio of 1:3 at a fully utilized 20-Gbps bottleneck receive bandwidth shares of 5 and 15 Gbps.
+
+\begin{proposition}[Bandwidth Allocation through Excess Occupancy]
+\label{prop:main-1}
+Consider a set of continuously backlogged flows sharing a service domain with effective capacity \(C\). Suppose the flows experience a common mean excess residence \(D>0\), their average excess occupancies reach positive targets \(q_i\), and the service domain is fully utilized. Then
+
+\begin{equation}
+\label{eq:signal-5}
+\boxed{
+x_i=C\frac{q_i}{\sum_jq_j}.
+}
+\end{equation}
+\end{proposition}
+
+\begin{proof} By Lemma~\ref{lem:main-1}, \(x_iD=q_i\). Summing over all flows and using \(\sum_i x_i=C\), we obtain \(D=\sum_iq_i/C\). Substitution yields Equation~\eqref{eq:signal-5}.
+\end{proof}
+
+Proposition~\ref{prop:main-1} establishes a direct bandwidth allocation mechanism: occupancy targets determine the relative shares, while network capacity determines the absolute rates. The common excess residence is determined by the aggregate target occupancy and available service capacity,
+
+\[
+D=\frac{\sum_iq_i}{C}.
+\]
+
+Thus, flow-level occupancy targets regulate the bandwidth-sharing ratios.
+
+This principle also admits a broader interpretation in networks with multiple bottlenecks. When the excess residence of each flow can be expressed as the sum of common nonnegative link congestion costs, with positive costs associated with saturated resources, enforcing \(\overline M_i=q_i\) yields the proportional-fair allocation induced by \(\mathbf q\):
+
+\begin{equation}
+\label{eq:signal-6}
+\max_{\mathbf x:\,R\mathbf x\le\mathbf C}
+\sum_i q_i\log x_i,
+\end{equation}
+
+where \(R\) describes the network resource usage of the flows. The excess residence acts as an implicit aggregate congestion price, linking end-to-end occupancy control to the network's capacity constraints. Appendix~\ref{app:a} establishes this result formally.
+
+\subsection{Bandwidth Sharing over Multipath}
+\label{sec:multipath}
+
+The occupancy–throughput relationship extends naturally to a flow whose packets traverse multiple paths. Let \(\pi_{i,p}\) be the fraction of flow \(i\)'s traffic carried on path \(p\), and let \(D_{i,p}\) denote its byte-weighted mean excess residence on that path. The flow's overall excess residence is
+
+\[
+D_i=\sum_p\pi_{i,p}D_{i,p},
+\]
+
+giving
+
+\begin{equation}
+\label{eq:signal-7}
+\boxed{
+\overline M_i=x_i\sum_p\pi_{i,p}D_{i,p}.
+}
+\end{equation}
+
+Equation~\eqref{eq:signal-7} shows that excess in-flight occupancy aggregates the residence contributions of all paths into a single flow-level quantity. A sender can therefore regulate its flow's total occupancy while the underlying transport independently selects packet paths.
+
+In symmetric multipath fabrics, traffic mixing can expose competing flows to comparable effective excess residence times. This property arises, for example, when flows sample similar path-level service conditions with comparable traffic fractions, or when the paths themselves provide similar excess residence. When these flows share a common effective residence \(D\) and the multipath service domain delivers its aggregate capacity \(C_\Sigma\), Proposition~\ref{prop:main-1} applies with \(C=C_\Sigma\).
+
+The resulting allocation can be illustrated using the three-flow example in \S\ref{sec:background}. Two parallel paths each have a capacity of 10 Gbps. Flow A uses the first path, flow C uses the second, and flow B uses both. Suppose the paths provide the same mean excess residence to the traffic they carry, and the aggregate excess occupancy targets satisfy
+
+\[
+q_A:q_B:q_C=1:2:1.
+\]
+
+All three flows then experience the same effective residence. With both paths fully utilized, their aggregate bandwidth shares are
+
+\begin{equation}
+\label{eq:signal-8}
+\boxed{
+(x_A,x_B,x_C)=(5,10,5)\ \mathrm{Gbps}.
+}
+\end{equation}
+
+Flow B carries 5 Gbps on each path, allowing both links to reach capacity. The allocation follows the logical-flow occupancy targets even though the flows consume different combinations of path resources. These rates implement the logical-flow weights in the example from \S\ref{sec:background}.
+
+The load balancer determines path placement and available service; excess in-flight control regulates flow shares within that service domain. Appendix~\ref{app:b} establishes the corresponding multipath allocation conditions, while Appendix~\ref{app:c} quantifies the effect of deviations in occupancy tracking and experienced residence.

@@ -1,8 +1,9 @@
 WAFT：延迟保护与平滑权重均衡（2026-10-29）
 
 正文入口
-  sections/design.tex 引入 sections/protection.tex。
-  该小节定义：β/γ、有效RTT epoch、本地严重拥塞条件、预算映射、
+  sections/design.tex 的保护小节随正文编译。
+  sections/protection.tex 是供独立预览使用的精简版本。
+  两个版本均定义：β/γ、有效RTT epoch、本地严重拥塞条件、预算映射、
   分布式尺度更新、恢复、条件平衡和服务下界。
 
 设计说明
@@ -31,6 +32,7 @@ WAFT：延迟保护与平滑权重均衡（2026-10-29）
   多瓶颈中无权比例公平不要求全网等速率。
 
 全文构建状态
-  本次独立中英文片段可编译。
-  main.tex 的完整编译首先停在现有 sections/background.tex 的 Markdown ## 标题。
-  未改写用户正在编辑的 background.tex、signal.tex 或 appendix.tex。
+  main.tex 已接入理论章节和附录 A–F，正文中的 Markdown 混排已转换为 LaTeX。
+  主文、英文独立预览和中文说明均可编译，公式与章节交叉引用可解析。
+  完整阅读稿当前共24页（正文9页、附录15页）；投稿前需按页数要求组织。
+  摘要、实现、评估等未完成部分及实验占位内容仍待补齐。
