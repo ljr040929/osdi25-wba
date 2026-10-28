@@ -1,0 +1,133 @@
+\subsection{Delay Protection with Gradual Weight Equalization}
+\label{sec:delay-protection}
+
+WAFT retains the application-specified weighted policy within a configured delay
+envelope. When contention pushes delay beyond that envelope, the sender reduces
+the total residence budget and gradually reduces weight differentiation. These
+two actions serve different purposes: scaling all budgets by the same factor
+reduces queueing but preserves the original bandwidth ratios; compressing the
+weight ratios moves service toward equal sharing within a common service domain.
+Protection changes the budget tracked by the existing in-flight controller,
+while retaining its observer, window update, and baseline-RTT pacing.
+
+\paragraph{Detecting sustained congestion.}
+The operator configures two absolute RTT thresholds, $T_0<\beta<\gamma$,
+where $T_0$ is the baseline RTT of the symmetric fabric. The normal-service
+boundary $\beta$ reserves headroom below the protection target $\gamma$.
+Each sender computes a byte-weighted mean $\bar R_{i,k}$ from usable RTT samples
+in a nonoverlapping feedback epoch. Sample weights count the newly confirmed
+payload bytes associated with that sample; retransmission-ambiguous samples are
+excluded. The epoch length is $2\max(\bar R_{i,k-1},T_0)$, initialized using the
+first valid RTT. Thus the budget layer operates more slowly than the inner
+half-baseline-RTT window controller.
+
+An epoch mean above $\beta$ is the local criterion for entering protection from
+normal operation. A mean at or above $\gamma$ denotes severe congestion and
+requires a budget reduction at every positive protection scale. These are
+endpoint observations of sustained confirmation delay, not estimates of the
+number of contending flows or a fabric-wide congestion flag. Without a new valid
+sample, the sender holds its protection state; startup and timeout recovery
+continue to use the transport's existing mechanisms.
+
+Thresholds are selected with the offline budget: a planned service domain with
+concurrent weight $\Omega_{\mathrm{plan}}$ and payload capacity lower bound
+$C_{\min}$ should satisfy
+$T_0+a\Omega_{\mathrm{plan}}/C_{\min}+h\le\beta$, where $h$ is calibrated
+normal-operation delay headroom. The service class then places $\gamma$ within
+its protection mean-delay budget, with $\beta<\gamma$. Neither threshold requires
+online knowledge of $C_{\min}$ or the active weight sum.
+
+\paragraph{Compressing budgets and weight differences together.}
+A service policy declares a positive weight range
+$w_{\min}\le w_i\le w_{\max}$. Define $u_i=w_i/w_{\min}\ge1$ and maintain
+one protection scale $s_i\in(0,1]$, initially one. The effective target is
+\begin{equation}
+ q_i(s_i)=a w_{\min}s_i u_i^{s_i},
+ \label{eq:protected-budget}
+\end{equation}
+where $a$ is the nominal budget per unit weight. At $s_i=1$, this target is
+exactly $a w_i$. Reducing $s_i$ decreases every target, since
+$dq_i/ds_i=a w_{\min}u_i^{s_i}(1+s_i\log u_i)>0$.
+The normalization makes this property hold for weights below one as well.
+The weight bounds are fixed policy configuration, not online measurements of
+other flows.
+
+When flows share the same scale $s$ and effective excess residence, their
+budget-tracking rates satisfy
+\begin{equation}
+ \frac{x_i}{x_j}=\left(\frac{w_i}{w_j}\right)^s.
+ \label{eq:protected-share-ratio}
+\end{equation}
+For example, a nominal weight ratio of four becomes two at $s=1/2$ and
+approximately $1.15$ at $s=0.1$. As $s$ approaches zero, relative shares
+approach equality while the common budget scale also decreases. In a general
+multi-bottleneck network, a common $s$ instead approaches the unweighted
+proportional-fair policy over the applicable routing feasible set; it does not
+require equal rates for flows consuming different resources.
+
+\paragraph{Updating the protection scale.}
+Let $z_{i,k}=\max(0,\bar R_{i,k}/T_0-1)$,
+$G=(\gamma-T_0)/T_0$, and $\Delta=(\gamma-\beta)/T_0$.
+At each completed feedback epoch, the sender applies
+\begin{align}
+ p_{i,k}&=\min\left(1,
+       \frac{s_{i,k}G}{z_{i,k}+\Delta s_{i,k}}\right),
+       \label{eq:protection-proposal}\\
+ s_{i,k+1}&=s_{i,k}^{1-\eta}p_{i,k}^{\eta}.
+       \label{eq:protection-update}
+\end{align}
+Here $\eta$ controls the outer budget step. One conservative choice is
+$\eta=\min\{1/2,\,1/[1+\log(w_{\max}/w_{\min})]\}$.
+The sender holds the resulting target constant during the next epoch.
+Only a fixed number of scalars are added for the scale, epoch timing, and RTT
+accumulation; there is no path state or new packet-history table.
+
+The update is continuous and preserves $0<s_i\le1$. Starting at $s_i=1$,
+$\bar R_i>\beta$ makes the scale decrease. More generally, the direction changes
+at $\bar R_i=\gamma-(\gamma-\beta)s_i$: delay above this value reduces the
+scale, while lower delay restores it. In particular, $\bar R_i\ge\gamma$
+always reduces the scale, and $\bar R_i\le\beta$ restores it toward one.
+Recovery therefore returns the nominal weighted policy without resetting the
+window or changing the allocation signal. The budget is not multiplied by the
+flow's measured service rate, avoiding a direct reduction of its target solely
+because its current throughput is small.
+At a common constant RTT, all interior scale fixed points also coincide:
+Equation~\eqref{eq:protection-proposal} requires $z+\Delta s_i=G$ for every
+flow. No sender needs to exchange its scale with another sender.
+
+\paragraph{Equilibrium meaning of the thresholds.}
+Consider backlogged flows with a common scale $s$, common baseline and effective
+RTT, accurate budget tracking, and a continuously busy service domain of payload
+capacity $C$. Their equilibrium satisfies
+\begin{equation}
+ x_i=C\frac{u_i^s}{\sum_j u_j^s},\qquad
+ R=T_0+\frac{a w_{\min}}{C}s\sum_j u_j^s.
+ \label{eq:protection-equilibrium}
+\end{equation}
+If $T_0+a\sum_iw_i/C\le\beta$, the equilibrium has $s=1$ and retains the
+original weights. Otherwise, the unique positive protected equilibrium solves
+\begin{equation}
+ \frac{a w_{\min}}{C}s\sum_j u_j^s+(\gamma-\beta)s
+       =\gamma-T_0.
+ \label{eq:protection-root}
+\end{equation}
+The left side is strictly increasing in $s$, is zero at $s=0$, and exceeds
+the right side at $s=1$. Hence $0<s<1$ and
+\begin{equation}
+ R=\gamma-(\gamma-\beta)s\in(\beta,\gamma).
+ \label{eq:protection-asymptote}
+\end{equation}
+Replicating a fixed weight mix increases $R$ monotonically toward $\gamma$
+and moves the rate ratios toward one. The total excess stock approaches
+$C(\gamma-T_0)$ rather than zero. For a weight range ratio
+$U=w_{\max}/w_{\min}$, the same model gives
+$x_i/(C/N)\ge U^{-s}$ for every flow among $N$ competitors.
+Thus the weakest relative service improves toward the domain's equal share
+as differentiation is relaxed.
+
+The thresholds describe a conditional mean-delay equilibrium; $\gamma$ is
+not a per-packet deadline. Senders maintain $s_i$ independently, so the common-scale
+property is assessed within a service domain satisfying the residence conditions
+of the allocation analysis. Protection is evaluated using delay, utilization,
+minimum rate relative to equal sharing, and restoration of nominal weights;
+deviation from the original weighted target is an intentional policy change.

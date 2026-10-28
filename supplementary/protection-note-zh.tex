@@ -1,0 +1,154 @@
+\documentclass[10pt,a4paper]{ctexart}
+\usepackage[margin=22mm]{geometry}
+\usepackage{amsmath,amssymb,amsthm,booktabs,hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\setlength{\parskip}{4pt}
+\newtheorem{proposition}{命题}
+\title{WAFT：极端拥塞的定义与平滑趋向均分的预算保护}
+\author{}\date{2026年10月29日}
+\begin{document}\maketitle
+
+\noindent\textbf{设计要点。}正常区保留$q_i=aw_i$。延迟超过正常边界后，把目标改为
+$q_i=a w_{\min}s_i(w_i/w_{\min})^{s_i}$，其中$s_i\in(0,1]$由端侧RTT反馈更新。
+尺度$s_i$同时控制总预算与权重差：正常时为1，拥塞加深时减小，延迟恢复后向1回升。
+内层仍使用现有超龄观测器、正值窗口更新和baseRTT pacing。
+
+\section{判定条件：用持续确认时延定义本地保护}
+
+$T_0$为对称拓扑的共同基准RTT，$\beta$为正常带权服务的平均RTT边界，$\gamma$为保护平衡的平均RTT渐近目标，满足$T_0<\beta<\gamma$。两个阈值均是\emph{时间量}，不是RTT倍数。
+每个发送端用独立反馈epoch内的有效RTT样本计算
+\[
+ \bar R_{i,k}=\frac{\sum_j b_jR_j}{\sum_jb_j}.
+\]
+$b_j$只计该样本对应的新确认payload；排除重传造成时间戳歧义的样本。epoch长度取
+\[
+ E_{i,k}=2\max(\bar R_{i,k-1},T_0),
+\]
+用首次有效RTT初始化。
+它比内层$H=T_0/2$周期更长，不改变原观测器的时间桶。
+
+\begin{center}\begin{tabular}{p{39mm}p{98mm}}\toprule
+观测区间 & 保护动作含义\\\midrule
+$\bar R_i\le\beta$ & 延迟处于正常范围；已压缩的尺度回升，逐步恢复原权重。\\
+$\beta<\bar R_i<\gamma$ & 从正常状态进入预算保护；持续状态下围绕随尺度变化的延迟目标调整。\\
+$\bar R_i\ge\gamma$ & 定义为严重/极端拥塞；任意正尺度都必须进一步减小。\\\bottomrule
+\end{tabular}\end{center}
+
+这些判据是本流看到的持续端到端确认时延，不是交换机队列告警，也不代表发送端知道全网流数。
+无新有效样本时保持尺度；首ACK前的线速启动及反馈丢失后的超时恢复仍由传输层负责。
+正常分配策略完全恢复对应$s_i\to1$，仅有一次低RTT样本不等于预算已立即恢复。
+
+\section{预算映射：同时降低排队与权重差}
+
+服务策略离线配置固定权重范围$0<w_{\min}\le w_i\le w_{\max}$。令
+$u_i=w_i/w_{\min}\ge1$，定义
+\begin{equation}
+ q_i(s_i)=a w_{\min}s_i u_i^{s_i},\quad0<s_i\le1.
+ \label{eq:zh-budget}
+\end{equation}
+在$s_i=1$时，目标准确退化为$aw_i$。其导数为
+\[
+ q_i'(s_i)=a w_{\min}u_i^{s_i}(1+s_i\ln u_i)>0,
+\]
+因此降低尺度会降低每条流的预算，包括原权重小于1的流。
+归一化保持权重单位的一致性。共同把$w_i$、$w_{\min}$、$w_{\max}$乘$c$，把$a$除$c$，预算和保护动作不变。
+
+共同驻留、共同尺度且预算跟踪准确时，
+\[
+ \frac{x_i}{x_j}=\frac{q_i}{q_j}=(w_i/w_j)^s.
+\]
+权重比4在$s=1,0.5,0.1$时分别对应速率比$4,2,1.149$。
+这与仅把所有预算乘同一数不同：后者改变排队水平，仍保留原来的速率比。
+在一般多瓶颈下，固定共同$s$对应的效用权重为$u_i^s$，因而$s\to0$趋向原路由可行域上的\emph{无权比例公平}；只有共同容量池的情形才对应等速率。
+
+\section{端侧迭代、退出与所需状态}
+
+令$z_i=\max(0,\bar R_i/T_0-1)$，$G=(\gamma-T_0)/T_0$，$\Delta=(\gamma-\beta)/T_0$。
+初始化$s_i=1$，每个有效反馈epoch结束时计算
+\begin{equation}
+ p_i=\min\left(1,\frac{s_iG}{z_i+\Delta s_i}\right),\qquad
+ s_i^+=s_i^{1-\eta}p_i^{\eta}.
+ \label{eq:zh-scale}
+\end{equation}
+下一epoch内保持$q_i(s_i^+)$不变，交给现有内层控制器跟踪。
+取$U=w_{\max}/w_{\min}$，可使用
+\[
+ 0<\eta\le\min\{1/2,1/(1+\ln U)\}.
+\]
+这里是预算层的几何步长，未改变内层窗口增益，也未加入ACK速率EWMA。
+
+由$p_i/s_i$的表达式可直接判断方向：
+\begin{align*}
+ s_i^+<s_i &\iff \bar R_i>\gamma-(\gamma-\beta)s_i,\\
+ s_i^+>s_i &\iff \bar R_i<\gamma-(\gamma-\beta)s_i\quad(s_i<1).
+\end{align*}
+因此，$s_i=1$时超过$\beta$便开始保护；达到$\gamma$时一定继续减小尺度；低于$\beta$时一定恢复尺度。恢复过程中目标预算连续向$aw_i$回升，不重置窗口。无须另加布尔模式或强制同步切换。
+给定共同恒定RTT，所有内部尺度固定点满足$z+\Delta s_i=G$，所以它们具有相同$s$；该性质来自共同反馈，无须交换尺度。
+
+新增状态只涉及尺度、epoch时钟、有效确认字节和RTT加权和，数量与包数、在途量、路径数无关。归一化的权重上下界作为离线配置安装。
+保护不使用本流服务速率乘预算，因此没有“当前速率更小，便据此把目标再调小”的直接服务自锁。
+
+\section{条件平衡：为何延迟渐近、分配趋向均分}
+
+考虑共同RTT和尺度、准确预算跟踪、容量$C$持续忙碌的服务域。由$\bar M_i=x_i(R-T_0)=q_i$及$\sum_i x_i=C$，有
+\begin{equation}
+ x_i=C\frac{u_i^s}{K(s)},\qquad
+ R=T_0+\frac{a w_{\min}}{C}sK(s),\quad K(s)=\sum_i u_i^s.
+ \label{eq:zh-service}
+\end{equation}
+若名义工作点$R_{\mathrm{nom}}=T_0+a\sum_iw_i/C\le\beta$，$s=1$为唯一正尺度平衡。
+否则，未裁剪固定点$p=s$给出$R=\gamma-(\gamma-\beta)s$，代入得到
+\begin{equation}
+ F(s):=\frac{a w_{\min}}C sK(s)+(\gamma-\beta)s=\gamma-T_0.
+ \label{eq:zh-root}
+\end{equation}
+$F(0)=0$，$F(1)>\gamma-T_0$，且
+\[
+ F'(s)=\frac{a w_{\min}}C\sum_i u_i^s(1+s\ln u_i)+(\gamma-\beta)>0.
+\]
+因此保护平衡存在且唯一，$0<s^*<1$，对应$\beta<R^*<\gamma$。
+复制固定权重混合时，任意固定$s>0$下$F(s)$增大，故根$s^*$下降，$R^*$严格增加。
+复制倍数趋于无穷时$s^*\to0$，所以$R^*\uparrow\gamma$、权重比的指数趋于零，总超龄预算趋于$C(\gamma-T_0)$。
+单流预算随竞争规模缩小，但总预算保持正的standing stock。
+任意改变权重分布时，RTT由完整的$K(s)$决定，总权重一个数不足以给所有配置排序。
+
+对$N$条流，由$1\le u_i\le U$还可得
+\[
+ \frac{x_i}{C/N}=\frac{N u_i^s}{\sum_j u_j^s}\ge U^{-s}.
+\]
+这个相对于同域均分的服务下界随$s\downarrow0$趋于1。它说明保护释放的是权重差，而不是用接近零的相对份额牺牲低权重流。
+
+\section{预算层的准静态局部稳定性}
+
+设每个预算epoch开始前内层已达到式\eqref{eq:zh-service}的平衡，各流同步更新，但允许$s_i$分别受到扰动。
+令$v=a w_{\min}/(CT_0)$，$y_i=\ln s_i$。在内部共同平衡$s$处，有$z=v\sum_i s_i u_i^{s_i}$及$z+\Delta s=G$。
+式\eqref{eq:zh-scale}的对数域Jacobian为
+\[
+ J=\left(1-\frac{\eta\Delta s}{G}\right)I
+ -\frac{\eta v}{G}\mathbf1 r^T,
+ \qquad r_j=s u_j^s(1+s\ln u_j).
+\]
+因此，$N-1$个差分模态的特征值为
+$\lambda_{\mathrm{diff}}=1-\eta\Delta s/G\in(0,1)$；共同尺度模态为
+\[
+ \lambda_{\mathrm{scale}}
+ =1-\eta\left[1+
+  (1-\Delta s/G)s\frac{\sum_j u_j^s\ln u_j}{K(s)}\right].
+\]
+因为$0<1-\Delta s/G<1$及$0\le\ln u_j\le\ln U$，上述$\eta$选择使$0\le\lambda_{\mathrm{scale}}<1$，所以这个准静态预算层局部渐近稳定。
+实际控制中的反馈延迟、异步epoch和包级窗口状态应在传输实验中验证；本节不把准静态模型的结论解释成包级时延上界。
+
+\section{配置、验证及与当前实现的关系}
+
+$\beta$选择正常带权精度所允许的均值延迟边界；$\gamma$选择保护所允许的均值预算，并为尾部波动和反馈滞后预留空间。原离线配重继续按容量与局部计划权重选$a$；保护只需要安装$a,T_0,w_{\min},w_{\max},\beta,\gamma,\eta$，在线不查询其他流。
+例如，计划局部总权重为$\Omega_{\mathrm{plan}}$、有效容量下界为$C_{\min}$时，应使
+\[
+ T_0+\frac{a\Omega_{\mathrm{plan}}}{C_{\min}}+h\le\beta<\gamma,
+\]
+其中$h$来自正常工作区的时延波动校准。再把$\gamma$放在该服务类可接受的保护均值预算内。若预期正常RTT加裕量已超过该预算，需要重新选择$a$或计划竞争规模，不能通过提高告警阈值把工作点改称正常。尾部SLO需用实测尾部裕量单独核查。
+
+当前补充定义的是用于现有超龄观测器的预算层扩展。此前预算/权重共同压缩实验提供了设计来源；这里补充了权重归一化、确定的严重拥塞判据及步长选择。随附脚本核验解析性质，不把旧内层的实验数字算作这版扩展的测量结果。
+后续接入应覆盖：正常区不触发、持续过载、单次RTT尖峰、重负载到达与退出、等权/宽权重范围、各路径独立瓶颈、路径间驻留偏差及反馈中断。
+正常区报告原带权误差；保护区报告最低速率/均分、压缩目标跟踪误差、利用率、均值与尾RTT、退出恢复时间及尺度的跨流差异。
+最小窗口和整包执行在极小单流预算下会使准确跟踪失效，应将其作为工作区间的边界一起测量。
+\end{document}
