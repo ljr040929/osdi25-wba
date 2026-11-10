@@ -7,7 +7,7 @@ Datacenter transports also use multiple paths to distribute traffic and reduce c
 
 Existing mechanisms enforce allocation through switch scheduling, centralized rate computation, or path-specific control. Switch schedulers enforce weighted shares at individual links and consume queue and scheduling resources. Centralized allocators coordinate flow-resource assignments, requiring updates as traffic and routing change. Path-specific controllers maintain congestion state for each path or subflow. Packet spraying makes this state harder to obtain because consecutive packets can traverse different paths. These costs motivate a flow-level allocator driven by standard transport feedback.
 
-We present WAFT, an end-host weighted bandwidth allocation system based on excess in-flight control. Its key insight is that a flow's mean excess in-flight occupancy equals its throughput multiplied by its mean residence beyond a baseline round-trip time. When competing flows experience a common effective excess residence, their bandwidth shares are proportional to their excess occupancies. WAFT maps application weights to occupancy targets and controls one aggregate sending window per logical flow.
+We present WAFT, an end-host weighted bandwidth allocation system based on excess inflight control. Its key insight is that a flow's mean excess inflight occupancy equals its throughput multiplied by its mean residence beyond a baseline round-trip time. When competing flows experience a common effective excess residence, their bandwidth shares are proportional to their excess occupancies. WAFT maps application weights to occupancy targets and controls one aggregate sending window per logical flow.
 
 WAFT combines a constant-space excess-occupancy observer, a weighted window controller, and an RTT-guided budget manager. The observer uses transmission and acknowledgment events to measure period-average excess occupancy. The window controller tracks the flow's target, while the budget manager reduces occupancy and compresses weight differences during sustained overload. Senders make these decisions locally using ACK and RTT feedback; the existing transport and load balancer select packet paths. Our analysis characterizes allocation under common service and multiple bottlenecks, and quantifies the effects of occupancy-tracking error and differences in experienced residence.
 
@@ -16,7 +16,32 @@ We implement WAFT on \emph{[implementation platform]} and evaluate it using \emp
 We make the following contributions:
 
 \begin{itemize}
-\item \textbf{Unified weighted allocation.} WAFT regulates logical-flow shares through aggregate excess in-flight budgets. We establish the service conditions that yield weighted allocation and quantify allocation error when these conditions vary.
+\item \textbf{Unified weighted allocation.} WAFT regulates logical-flow shares through aggregate excess inflight budgets. We establish the service conditions that yield weighted allocation and quantify allocation error when these conditions vary.
 \item \textbf{A lightweight end-host implementation.} WAFT combines constant-space observation, aggregate window control, and RTT-guided congestion protection using standard transport feedback.
 \item \textbf{Evaluation across transport modes.} We evaluate allocation accuracy, responsiveness, overhead, and application performance across single-path and multipath scenarios, including the effects of underlying load balancing.
 \end{itemize}
+%# 1 Introduction（修改版）
+
+%现代数据中心承载着大量分布式应用，不同通信流对应用性能的影响往往存在显著差异。例如，在分布式机器学习训练中，不同张量传输可能位于不同的计算依赖路径上，关键通信的延迟可能直接阻塞后续计算，而其他通信则可以与计算过程重叠；在分布式数据分析中，不同数据传输也可能对计算阶段的完成时间产生不同影响。因此，应用不仅需要高效利用网络容量，还希望能够根据通信的重要程度控制不同流获得的带宽份额。**加权带宽分配（Weighted Bandwidth Allocation）为此提供了一种灵活的服务抽象：应用为逻辑流指定相对权重，由网络根据资源竞争情况动态分配带宽。** 与简单的公平共享、严格优先级调度或静态速率限制相比，这种方式能够更加灵活地表达应用的相对服务需求，在优先保障重要通信的同时，允许其他通信继续取得进展。
+
+%与此同时，现代数据中心网络正在广泛采用多路径传输，以更充分地利用网络中的并行容量并缓解局部拥塞。从传统的 ECMP 到动态路径切换，再到包级喷洒（Packet Spraying），一条逻辑流的数据可以通过不同路径传输，并在不同的网络资源上与其他流竞争。**然而，多路径传输改变的是流量在网络中的分布方式，而不是应用对逻辑流的带宽分配需求。** 对于应用而言，一条通信流的重要程度不应取决于它当前经过多少条路径，也不应随着底层负载均衡策略的改变而需要重新定义。理想的带宽分配服务应允许应用独立地指定逻辑流权重，同时允许底层传输灵活选择和切换路径，使带宽分配策略与流量转发机制相互解耦。
+
+%实现这样的服务并不容易。**其根本困难在于，应用的带宽分配目标定义在逻辑流级别，而实际的带宽竞争发生在分散的物理网络资源上。** 在多路径网络中，一条逻辑流可能同时参与多个瓶颈上的竞争，而不同瓶颈所面对的竞争流集合、可用容量和拥塞状态也可能不同。因此，即使各瓶颈都能够独立执行加权带宽分配，这些局部分配结果也不一定构成符合应用权重的聚合带宽分配。实现正确的逻辑流级服务，必须处理多个资源竞争过程之间的关系；而当流量分布随负载均衡策略和网络状态不断变化时，这种关系也会随之改变。
+
+%一种自然的解决思路是**显式计算并执行带宽分配结果**：根据流的权重、资源约束及其竞争关系，确定各条流应获得的带宽，再通过相应的网络或端侧机制执行分配。然而，在多路径环境中，逻辑流的聚合带宽受到多个资源约束的共同影响。显式确定其目标速率需要考虑这些约束及当前流量分布；如果进一步依赖路径级执行，还需要将聚合分配目标与具体路径上的资源使用相协调。随着流的加入和退出、网络容量变化以及数据包在不同路径间重新分布，相关的分配决策也可能需要重新计算或调整。已有系统通过交换机调度、集中式协调或网络遥测等不同方式处理这些问题，但分别依赖相应的网络执行能力、协调机制或反馈信息。对于希望兼容不同多路径传输方式的带宽分配服务而言，这些依赖增加了系统设计与底层网络机制之间的耦合。
+
+%**但控制带宽分配的结果，是否一定需要显式计算每条流应该获得多少带宽？** 带宽分配本质上产生于不同流对有限网络资源的竞争。当多条流共享一个瓶颈时，各流实际获得的速率由其资源竞争行为与瓶颈提供的服务共同决定。这意味着，除了直接计算和执行目标速率之外，还存在另一种可能：**控制不同流参与网络资源竞争的能力，让带宽份额通过网络自身的资源共享过程形成。** 对于多路径网络，这种方式尤其具有吸引力。由于不同路径上的竞争关系已经通过网络服务过程共同影响每条流的端到端传输行为，发送端不一定需要重建所有瓶颈之间的竞争关系，也不一定需要为每条路径单独计算目标速率。相反，如果能够找到一个与资源竞争和实际吞吐量具有可预测联系的流级控制量，就有可能通过统一的端侧控制目标，间接调节逻辑流在多个瓶颈上的聚合带宽份额。由此，带宽分配问题便从**显式确定并执行流的目标速率**，转变为**调节逻辑流参与网络资源竞争的行为，使分配结果由网络服务过程自然形成**。
+
+%基于这一思路，我们提出 **WAFT，一种面向多路径数据中心的路径无关（Path-Oblivious）加权带宽分配系统**。WAFT 将应用指定的流权重映射为统一的超额在途数据量（Excess Inflight Occupancy）目标，并通过端侧控制调节逻辑流参与网络资源竞争的能力。Excess inflight 刻画了超过基线往返时延后仍未被确认的数据，其平均值与流的吞吐量及额外网络驻留时间之间存在确定的关系。在适当的网络服务条件下，控制各流的 excess-inflight 目标可以形成符合应用权重的带宽分配，并在多瓶颈网络中对应加权比例公平（Weighted Proportional Fairness）。这一机制使 WAFT 无需显式求解各流的目标速率，也无需识别逻辑流经过的具体路径或分别控制路径上的分配结果，而是利用端到端反馈调节整个逻辑流的资源竞争行为。
+
+%WAFT 将这一分配原理实现为一套轻量级、分布式的端侧带宽分配服务。应用只需为逻辑流提供相应的权重，WAFT 即可根据网络竞争情况动态调节其带宽份额，而不要求应用感知底层的路径选择或瓶颈变化。系统采用统一的流级控制状态，在单路径传输、动态路径切换和包级喷洒等不同转发方式下复用相同的分配机制。为适应数据中心中快速变化的流量需求，WAFT 能够响应权重调整、竞争流加入与退出以及可用容量变化，并在持续高负载下通过自适应资源预算管理缓解过度排队。整个分配过程由发送端独立执行，使用已有的发送与确认反馈，无需额外的交换机遥测或调度支持，也不依赖集中式带宽协调。**由此，WAFT 为分布式应用提供了一种可编程、可动态调整、与底层多路径转发方式解耦的加权带宽分配能力。** 其具体分配保证取决于底层网络的资源约束和服务条件，而不意味着任意路径放置都会产生相同的吞吐量结果。
+
+%我们通过不同网络拓扑、负载均衡策略、竞争规模与动态流量场景评估 WAFT，并进一步考察其对分布式应用执行性能的影响。实验表明，WAFT 能够在多种多路径转发机制下实现准确且稳定的加权带宽分配，并在权重、竞争流数量及网络容量发生变化时及时调整服务。更重要的是，**这种流级带宽分配能力能够被应用直接用于改善计算任务的执行效率。** 通过为关键路径上的通信分配更大的带宽份额，应用能够使关键数据更早到达，提前启动后继计算，增加计算与通信的重叠，并缩短作业完成时间。在所评估的多路径关键输入工作负载中，WAFT 相比等权分配缩短了 26.02% 的作业完成时间；在阶段关键性发生变化的任务中，应用还能够动态调整流权重，使带宽分配随计算依赖关系变化。上述结果表明，WAFT 不仅能够在网络层实现细粒度的带宽分配，还能为分布式应用提供可实际利用的通信资源调控能力。具体收益取决于工作负载的计算依赖关系及其可调度通信所占的关键路径比例。
+
+%**本文的主要贡献如下：**
+
+%1. **一种面向现代多路径网络的统一加权带宽分配服务。** 我们提出 WAFT，使分布式应用能够通过逻辑流权重表达相对带宽需求，而无需感知数据包的具体转发路径。WAFT 将流级带宽分配与底层路径选择解耦，在不同多路径传输模式下提供统一的端侧控制机制。
+
+%2. **一种通过流级资源竞争控制实现加权分配的端侧机制。** WAFT 无需显式计算和下发目标速率，而是通过控制整个逻辑流的 excess-inflight budget，使网络中多个资源上的竞争共同形成带宽分配。我们建立这一控制方式与加权带宽分配之间的关系，刻画其在共享瓶颈及多瓶颈网络中的适用条件，并设计相应的动态控制和拥塞保护机制。
+
+%3. **对分配性能、系统开销与应用收益的综合评估。** 我们在不同转发方式、网络条件和动态工作负载下验证 WAFT 的分配精度、响应能力及扩展性，并通过具有计算依赖关系的分布式应用工作负载，展示细粒度带宽分配如何改善关键通信完成时间、增加计算通信重叠并降低作业完成时间。

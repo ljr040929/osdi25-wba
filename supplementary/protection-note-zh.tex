@@ -22,10 +22,10 @@ $T_0$为对称拓扑的共同基准RTT，$\beta$为正常带权服务的平均RT
 \]
 $b_j$只计该样本对应的新确认payload；排除重传造成时间戳歧义的样本。epoch长度取
 \[
- E_{i,k}=2\max(\bar R_{i,k-1},T_0),
+ \tau_{i,k}=2\max(\bar R_{i,k-1},T_0),
 \]
 用首次有效RTT初始化。
-它比内层$H=T_0/2$周期更长，不改变原观测器的时间桶。
+它比内层$T_0/2$周期更长，不改变原观测器的时间桶。
 
 \begin{center}\begin{tabular}{p{39mm}p{98mm}}\toprule
 观测区间 & 保护动作含义\\\midrule
@@ -89,7 +89,7 @@ $\eta$控制预算层的几何步长。
 
 \section{条件平衡：为何延迟渐近、分配趋向均分}
 
-考虑共同RTT和尺度、准确预算跟踪、容量$C$持续忙碌的服务域。由$\bar M_i=x_i(R-T_0)=q_i$及$\sum_i x_i=C$，有
+考虑共同RTT和尺度、准确预算跟踪、容量$C$持续忙碌的服务域。由$\bar E_i=x_i(R-T_0)=q_i$及$\sum_i x_i=C$，有
 \begin{equation}
  x_i=C\frac{u_i^s}{K(s)},\qquad
  R=T_0+\frac{a w_{\min}}{C}sK(s),\quad K(s)=\sum_i u_i^s.

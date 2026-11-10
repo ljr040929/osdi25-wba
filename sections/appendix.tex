@@ -25,7 +25,7 @@ The excess occupancy is
 
 \begin{equation}
 \label{eq:app-a-3}
-M_i(t)
+E_i(t)
 =\sum_{b\in i}v_b
 \mathbf 1\{s_b+T_{0,i}\le t<c_b\}.
 \end{equation}
@@ -42,7 +42,7 @@ Subtracting young occupancy from actual outstanding occupancy gives the exact id
 \begin{equation}
 \label{eq:app-a-5}
 \boxed{
-M_i(t)=I_i(t)-Y_i(t)
+E_i(t)=I_i(t)-Y_i(t)
 =S_i(t-T_{0,i})-A_i(t).
 }
 \end{equation}
@@ -57,7 +57,7 @@ Suppose a flow has a positive long-term unique-payload transmission rate \(x_i\)
 \label{eq:app-a-6}
 \overline I_i=x_iT_i,
 \qquad
-\overline M_i=x_i(T_i-T_{0,i}).
+\overline E_i=x_i(T_i-T_{0,i}).
 \end{equation}
 \end{lemma}
 
@@ -65,25 +65,25 @@ Suppose a flow has a positive long-term unique-payload transmission rate \(x_i\)
 
 \begin{equation}
 \label{eq:app-a-7}
-\int_0^H M_i(t)\,dt
+\int_0^H E_i(t)\,dt
 =
 \sum_{b:s_b\in[0,H]}
-v_b(T_b-T_{0,i})-E_i(H),
+v_b(T_b-T_{0,i})-\mathcal B_i(H),
 \end{equation}
 
 where the unfinished right-boundary contribution is
 
 \begin{equation}
 \label{eq:app-a-8}
-E_i(H)=
+\mathcal B_i(H)=
 \sum_{b:s_b\in[0,H]}
 v_b\big[c_b-\max\{H,s_b+T_{0,i}\}\big]^+.
 \end{equation}
 
-The first term in Equation~\eqref{eq:app-a-7}, divided by \(H\), equals the unique first-send rate over the interval multiplied by the byte-weighted mean excess residence of those data units. By assumption, these quantities converge to \(x_i\) and \(T_i-T_{0,i}\), respectively. Since \(E_i(H)=o(H)\), dividing Equation~\eqref{eq:app-a-7} by \(H\) and taking \(H\to\infty\) yields
+The first term in Equation~\eqref{eq:app-a-7}, divided by \(H\), equals the unique first-send rate over the interval multiplied by the byte-weighted mean excess residence of those data units. By assumption, these quantities converge to \(x_i\) and \(T_i-T_{0,i}\), respectively. Since \(\mathcal B_i(H)=o(H)\), dividing Equation~\eqref{eq:app-a-7} by \(H\) and taking \(H\to\infty\) yields
 
 \[
-\overline M_i=x_i(T_i-T_{0,i}).
+\overline E_i=x_i(T_i-T_{0,i}).
 \]
 
 Applying the same occupancy-time argument to Equation~\eqref{eq:app-a-2} gives \(\overline I_i=x_iT_i\). Finally,
@@ -147,7 +147,7 @@ Rates are expressed relative to a fixed reference unit inside the logarithm; the
 
 \begin{theorem}[Multi-Bottleneck Allocation by Excess Occupancy]
 \label{thm:a-1}
-Suppose a positive feasible operating point satisfies \(\overline M_i=q_i\). Assume each flow's mean excess residence can be expressed as
+Suppose a positive feasible operating point satisfies \(\overline E_i=q_i\). Assume each flow's mean excess residence can be expressed as
 
 \begin{equation}
 \label{eq:app-a-12}
@@ -210,7 +210,7 @@ Lemma~\ref{lem:a-1} also gives
 
 \begin{equation}
 \label{eq:app-a-17}
-\overline I_i=x_iT_{0,i}+\overline M_i.
+\overline I_i=x_iT_{0,i}+\overline E_i.
 \end{equation}
 
 Under the same additive residence-price model, suppose instead that a positive operating point maintains total outstanding occupancy \(\overline I_i=q_i\). Then
@@ -294,7 +294,7 @@ d_\ell
 \big(C_\ell-(R(\boldsymbol\pi)\mathbf x)_\ell\big)=0,
 \end{equation}
 
-and every flow satisfies \(\overline M_i=q_i\). Then \(\mathbf x\) uniquely maximizes
+and every flow satisfies \(\overline E_i=q_i\). Then \(\mathbf x\) uniquely maximizes
 
 \begin{equation}
 \label{eq:app-b-7}
@@ -471,7 +471,7 @@ and the \(d_\ell\) satisfy capacity complementarity. If
 
 \begin{equation}
 \label{eq:app-b-24}
-\overline M_i=\sum_p f_{i,p}D_{i,p}=q_i
+\overline E_i=\sum_p f_{i,p}D_{i,p}=q_i
 \end{equation}
 
 and every used path has minimum excess residence among the flow's available paths,
@@ -551,7 +551,7 @@ Suppose the realized mean excess occupancy and residence are
 
 \begin{equation}
 \label{eq:app-c-1}
-\overline M_i=q_i(1+e_i),
+\overline E_i=q_i(1+e_i),
 \qquad
 D_i=D(1+\delta_i),
 \end{equation}
@@ -792,7 +792,7 @@ Suppose
 
 \begin{equation}
 \label{eq:app-c-18}
-\overline M_i=q_i(1+e_i)>0.
+\overline E_i=q_i(1+e_i)>0.
 \end{equation}
 
 Define normalized target and realized occupancy distributions:
@@ -919,9 +919,9 @@ Consequently,
 
 \begin{equation}
 \label{eq:app-c-25}
-\overline M_A=x_AD_A=\frac56,
+\overline E_A=x_AD_A=\frac56,
 \qquad
-\overline M_B=x_BD_B=\frac56,
+\overline E_B=x_BD_B=\frac56,
 \end{equation}
 
 despite their unequal rates. The difference arises because the two flows sample different phases of the same queueing process. Replicating this construction over synchronized parallel paths preserves the same effect.
@@ -957,21 +957,21 @@ Equations~\eqref{eq:app-c-27}–\eqref{eq:app-c-28} connect the variation in exp
 \section{Exact Excess-Occupancy Measurement}
 \label{app:d}
 
-This appendix establishes the correctness and complexity of the excess in-flight observer introduced in \S\ref{sec:observer}. We first derive an exact aggregate representation of excess occupancy, then show how its period average can be reconstructed from a constant amount of transmission history.
+This appendix establishes the correctness and complexity of the excess inflight observer introduced in \S\ref{sec:observer}. We first derive an exact aggregate representation of excess occupancy, then show how its period average can be reconstructed from a constant amount of transmission history.
 
 \subsection{Unique-Byte Occupancy Accounting}
 \label{app:d-1}
 
-Consider logical flow \(i\). Let \(S_i(t)\) denote cumulative uniquely first-transmitted payload bytes and \(A_i(t)\) denote cumulative uniquely confirmed payload bytes up to time \(t\). Define actual outstanding occupancy as
+Consider logical flow \(i\). Let \(S_i(t)\) denote cumulative sent payload bytes and \(A_i(t)\) denote cumulative acknowledged payload bytes up to time \(t\). Define actual outstanding occupancy as
 
 \begin{equation}
 \label{eq:app-d-1}
 I_i(t)=S_i(t)-A_i(t).
 \end{equation}
 
-For each unique data unit \(b\), let \(v_b\) be its payload size, \(s_b\) its first-transmission time, and \(c_b\) its first unique-confirmation time. Retransmitting a data unit preserves its original identity and first-transmission time.
+For each data unit \(b\), let \(v_b\) be its payload size, \(s_b\) its send time, and \(c_b\) its confirmation time. Retransmitting a data unit preserves its original identity and first-transmission time.
 
-Assume \(T_0>0\) is a fixed lower bound on first-transmission-to-confirmation residence:
+Assume \(T_0>0\) is a fixed lower bound on send-to-confirmation residence:
 
 \begin{equation}
 \label{eq:app-d-2}
@@ -990,7 +990,7 @@ The excess occupancy counts the subset whose age has reached the baseline time:
 
 \begin{equation}
 \label{eq:app-d-4}
-M_i(t)=
+E_i(t)=
 \sum_{b\in i}v_b
 \mathbf 1\{s_b+T_0\le t<c_b\}.
 \end{equation}
@@ -1002,23 +1002,23 @@ Under Equation~\eqref{eq:app-d-2}, the excess occupancy satisfies
 \begin{equation}
 \label{eq:app-d-5}
 \boxed{
-M_i(t)=S_i(t-T_0)-A_i(t).
+E_i(t)=S_i(t-T_0)-A_i(t).
 }
 \end{equation}
 \end{lemma}
 
-\begin{proof} A data unit first transmitted after \(t-T_0\) is younger than the baseline time. By Equation~\eqref{eq:app-d-2}, it cannot have been confirmed by time \(t\). Therefore, the young outstanding occupancy is exactly
+\begin{proof} A data unit sent after \(t-T_0\) is younger than the baseline time. By Equation~\eqref{eq:app-d-2}, it cannot have been confirmed by time \(t\). Therefore, the baseline inflight amount is exactly
 
 \begin{equation}
 \label{eq:app-d-6}
 Y_i(t)=S_i(t)-S_i(t-T_0).
 \end{equation}
 
-The young data constitute a subset of actual outstanding data. Subtracting them gives
+These baseline bytes constitute a subset of actual outstanding data. Subtracting them gives
 
 \[
 \begin{aligned}
-M_i(t)
+E_i(t)
 &=I_i(t)-Y_i(t)\\
 &=S_i(t)-A_i(t)
  -S_i(t)+S_i(t-T_0)\\
@@ -1029,125 +1029,108 @@ M_i(t)
 This proves the identity.
 \end{proof}
 
-Equation~\eqref{eq:app-d-5} computes excess occupancy from cumulative unique transmissions and confirmations across all forwarding paths and confirmation orders.
+Equation~\eqref{eq:app-d-5} computes excess occupancy from cumulative transmissions and confirmations across all forwarding paths and confirmation orders.
 
 \subsection{Exact Period-Average Reconstruction}
 \label{app:d-2}
 
-The inner controller measures the period-average excess occupancy
+The observer and inner controller use fixed periods of length \(T_0/2\), with boundaries \(t_k=kT_0/2\). The measured average is
 
 \begin{equation}
 \label{eq:app-d-7}
-\widehat M_{i,k}
-=
-\frac1H\int_{t_k}^{t_k+H}M_i(t)\,dt,
-\qquad
-t_k=kH,\quad H=\frac{T_0}{2}.
+\widehat E_{i,k}
+=\frac{2}{T_0}\int_{t_k}^{t_{k+1}}E_i(t)\,dt.
 \end{equation}
 
-For readability, we omit the flow index below.
-
-Within period \(k\), define the actual outstanding-byte area
+For readability, we omit the flow index below. Within period \(k\), define the time accumulation of inflight bytes
 
 \begin{equation}
 \label{eq:app-d-8}
-J_k=\int_{t_k}^{t_k+H}I(t)\,dt.
+J_k=\int_{t_k}^{t_{k+1}}I(t)\,dt.
 \end{equation}
 
-Let \(B_k\) be the uniquely first-transmitted payload bytes in the period, and let \(V_k\) be their first-send time moment:
+For a data unit of size \(v_b\) sent at \(s_b\) in this period, define its send-time offset \(\delta_b=s_b-t_k\). The transmitted-byte count and byte-weighted offset sum are
 
 \begin{equation}
 \label{eq:app-d-9}
-B_k=\sum_{s_b\in[t_k,t_k+H)}v_b,
+B_k=\sum_{s_b\in[t_k,t_{k+1})}v_b,
 \end{equation}
 
 \begin{equation}
 \label{eq:app-d-10}
-V_k=
-\sum_{s_b\in[t_k,t_k+H)}
-v_b(s_b-t_k).
+V_k=\sum_{s_b\in[t_k,t_{k+1})}v_b\delta_b.
 \end{equation}
 
-To compute the excess area, we subtract the area contributed by young outstanding data. For period \(k\), a data unit contributes young occupancy at time \(t\) exactly when
+\(B_k\) has units of bytes; \(V_k\) and \(J_k\) have units of byte-time. The rectangle of height \(v_b\) and width \(T_0/2\) has area \(v_bT_0/2\). Removing the width \(\delta_b\) before the send leaves \(v_b(T_0/2-\delta_b)\), which sums to \((T_0/2)B_k-V_k\).
+
+A data unit contributes baseline inflight occupancy at time \(t\) exactly when
 
 \begin{equation}
 \label{eq:app-d-11}
 t-T_0<s_b\le t.
 \end{equation}
 
-Because \(T_0=2H\), only transmissions from periods \(k\), \(k-1\), and \(k-2\) can satisfy this condition during the observation interval.
+Since \(T_0\) spans two fixed periods, only sends in periods \(k-2\), \(k-1\), and \(k\) contribute during period \(k\). Let \(\mathcal Y_k\) denote the baseline inflight amount accumulated over period \(k\). Each send contributes its byte count times the overlap of \([s_b,s_b+T_0)\) with \([t_k,t_{k+1})\).
 
 \begin{lemma}[Exact Period-Average Excess Occupancy]
 \label{lem:d-2}
-Under the assumptions of Lemma~\ref{lem:d-1} and \(T_0=2H\),
+Under the assumptions of Lemma~\ref{lem:d-1}, with periods of length \(T_0/2\),
 
 \begin{equation}
 \label{eq:app-d-12}
-\boxed{
-\widehat M_{i,k}
-=
-\frac{
-J_k-HB_k+V_k-HB_{k-1}-V_{k-2}
-}{H}.
-}
+\boxed{\widehat E_{i,k}=\frac{J_k-\mathcal Y_k}{T_0/2},}
 \end{equation}
+
+where \(\mathcal Y_k=V_{k-2}+(T_0/2)B_{k-1}+((T_0/2)B_k-V_k)\).
 \end{lemma}
 
-\begin{proof} We calculate the young-outstanding area separately for the three possible first-send periods.
+\begin{proof} We calculate the baseline inflight area separately for each sending period.
 
-For a data unit first transmitted at \(s_b=t_k+u\) during period \(k\), where \(0\le u<H\), its young occupancy persists throughout the remainder of the current period. Its contribution is
-
-\[
-v_b(H-u).
-\]
-
-Summing these contributions gives
+For a data unit sent at \(s_b=t_k+\delta_b\) during period \(k\), where \(0\le\delta_b<T_0/2\), the overlap duration is \(T_0/2-\delta_b\). Summing the byte-time contributions gives
 
 \begin{equation}
 \label{eq:app-d-13}
-A_k^{\mathrm{young}}=HB_k-V_k.
+A_k^{\mathrm{base}}=\frac{T_0}{2}B_k-V_k.
 \end{equation}
 
-For a data unit first transmitted in period \(k-1\), its age at the beginning of period \(k\) is between zero and \(H\). It remains younger than \(2H\) throughout the current period. Hence,
+For a data unit sent in period \(k-1\), its age at the beginning of period \(k\) is at most \(T_0/2\). It remains younger than \(T_0\) throughout the half-open current period and contributes a full period's area:
 
 \begin{equation}
 \label{eq:app-d-14}
-A_{k-1}^{\mathrm{young}}=HB_{k-1}.
+A_{k-1}^{\mathrm{base}}=\frac{T_0}{2}B_{k-1}.
 \end{equation}
 
-Finally, consider a data unit first transmitted at \(s_b=t_{k-2}+u\), with \(0\le u<H\). Its age reaches \(2H\) at time
+For a data unit sent at \(s_b=t_{k-2}+\delta_b\), its age reaches \(T_0\) at
 
 \[
-s_b+2H=t_k+u.
+s_b+T_0=t_k+\delta_b.
 \]
 
-It therefore contributes young occupancy for exactly \(u\) time units in period \(k\). Summing gives
+Its overlap duration in period \(k\) is exactly its original send-time offset \(\delta_b\). Summing gives
 
 \begin{equation}
 \label{eq:app-d-15}
-A_{k-2}^{\mathrm{young}}=V_{k-2}.
+A_{k-2}^{\mathrm{base}}=V_{k-2}.
 \end{equation}
 
-All earlier transmissions have already reached the baseline age threshold before period \(k\) begins. The total young-outstanding area is therefore
+All earlier transmissions have reached the baseline age before period \(k\) begins. Therefore,
 
 \begin{equation}
 \label{eq:app-d-16}
-\int_{t_k}^{t_k+H}Y(t)\,dt
-=
-HB_k-V_k+HB_{k-1}+V_{k-2}.
+\begin{aligned}
+\mathcal Y_k&=\int_{t_k}^{t_{k+1}}Y(t)\,dt\\
+&=V_{k-2}+\frac{T_0}{2}B_{k-1}
+  +\left(\frac{T_0}{2}B_k-V_k\right).
+\end{aligned}
 \end{equation}
 
-Since \(M(t)=I(t)-Y(t)\),
+Integrating \(E(t)=I(t)-Y(t)\) gives
 
 \[
-\begin{aligned}
-H\widehat M_k
-&=J_k-\int_{t_k}^{t_k+H}Y(t)\,dt\\
-&=J_k-HB_k+V_k-HB_{k-1}-V_{k-2}.
-\end{aligned}
+\frac{T_0}{2}\widehat E_k=J_k-\mathcal Y_k.
 \]
 
-Dividing by \(H\) proves Equation~\eqref{eq:app-d-12}.
+Dividing by \(T_0/2\) proves Equation~\eqref{eq:app-d-12}.
 \end{proof}
 
 Under the baseline condition of Lemma~\ref{lem:d-1}, reconstruction is exact across transmission times, arrival orders, and path counts.
@@ -1155,7 +1138,7 @@ Under the baseline condition of Lemma~\ref{lem:d-1}, reconstruction is exact acr
 \subsection{Event Processing and State Complexity}
 \label{app:d-3}
 
-The actual outstanding occupancy \(I(t)\) changes only when unique data is first transmitted or newly confirmed. Between these events, its value remains constant. WAFT therefore maintains the outstanding-byte area by integrating the preceding occupancy over each elapsed interval.
+The inflight amount \(I(t)\) changes when data is sent or acknowledged. Between these events, its value remains constant. WAFT therefore maintains the outstanding-byte area by integrating the preceding occupancy over each elapsed interval.
 
 Let \(t_{\mathrm{last}}\) denote the time of the most recently processed event. Before processing an event at time \(t\), the observer performs
 
@@ -1168,7 +1151,7 @@ t_{\mathrm{last}}\leftarrow t.
 
 The event-specific operations are:
 
-\textbf{First transmission.} When \(b\) new payload bytes are first transmitted at time \(t\),
+\textbf{Send.} When \(b\) bytes are sent at time \(t\),
 
 \begin{equation}
 \label{eq:app-d-18}
@@ -1178,16 +1161,16 @@ V_k&\leftarrow V_k+b(t-t_k).
 \end{aligned}
 \end{equation}
 
-\textbf{Unique confirmation.} When \(b\) previously outstanding unique bytes are confirmed for the first time,
+\textbf{Acknowledgment.} When \(b\) inflight bytes are acknowledged,
 
 \begin{equation}
 \label{eq:app-d-19}
 I\leftarrow I-b.
 \end{equation}
 
-\textbf{Control-period boundary.} At time \(t_k+H\), the observer first accounts for the elapsed outstanding-byte area using Equation~\eqref{eq:app-d-17}, then computes Equation~\eqref{eq:app-d-12}. It rotates the \(B\) and \(V\) histories and resets the statistics of the new period.
+\textbf{Control-period boundary.} At time \(t_{k+1}\), the observer first accounts for the elapsed outstanding-byte area using Equation~\eqref{eq:app-d-17}, then computes Equation~\eqref{eq:app-d-12}. It rotates the \(B\) and \(V\) histories and resets the statistics of the new period.
 
-Events timestamped exactly at a period boundary are processed after finalizing the preceding period, consistent with the half-open interval convention \([t_k,t_k+H)\).
+Events timestamped exactly at a period boundary are processed after finalizing the preceding period, consistent with the half-open interval convention \([t_k,t_{k+1})\).
 
 Retransmissions do not increase \(B_k\) or \(I\), because they do not introduce new unique data. Duplicate confirmations do not release the same bytes again. With selective acknowledgments, out-of-order data can be uniquely confirmed and released independently of earlier sequence gaps.
 
@@ -1195,7 +1178,7 @@ These rules preserve the accounting identities used in Lemmas~\ref{lem:d-1} and~
 
 The observer needs only current occupancy and area accumulators, short histories of \(B\) and \(V\), and timing information. The reference implementation stores this information in six 64-bit fields and four 32-bit fields, totaling 64 bytes per flow for the observer.
 
-Each first-send, unique-confirmation, and periodic control event performs a constant number of arithmetic and state-update operations. Thus, with periodic boundary processing, the additional observer complexity is
+Each send, acknowledgment, and periodic control event performs a constant number of arithmetic and state-update operations. Thus, with periodic boundary processing, the additional observer complexity is
 
 \begin{equation}
 \label{eq:app-d-20}
@@ -1205,7 +1188,7 @@ Each first-send, unique-confirmation, and periodic control event performs a cons
 \end{aligned}}
 \end{equation}
 
-These bounds are independent of the number of packets in flight and the number of paths used by the flow.
+These bounds are independent of the number of packets inflight and the number of paths used by the flow.
 
 
 \section{Window Dynamics and Budgets}
@@ -1216,14 +1199,14 @@ This appendix analyzes the normalized excess-occupancy window controller in \S\r
 \subsection{Properties of the Window Update}
 \label{app:e-1}
 
-For a positive target \(q_i\) and a measured excess occupancy \(\widehat M_{i,k}\ge0\), the controller computes
+For a positive target \(q_i\) and a measured excess occupancy \(\widehat E_{i,k}\ge0\), the controller computes
 
 \begin{equation}
 \label{eq:app-e-1}
 e_{i,k}
 =
-\frac{q_i-\widehat M_{i,k}}
-{\max(q_i,\widehat M_{i,k})}
+\frac{q_i-\widehat E_{i,k}}
+{\max(q_i,\widehat E_{i,k})}
 \end{equation}
 
 and updates the sending window as
@@ -1254,19 +1237,19 @@ The normalized error and the corresponding unconstrained window update satisfy:
 \le(1+g)W_{i,k}.
 \end{equation}
 
-Moreover, the update increases the window when \(\widehat M_{i,k}<q_i\), decreases it when \(\widehat M_{i,k}>q_i\), and leaves it unchanged when \(\widehat M_{i,k}=q_i\).
+Moreover, the update increases the window when \(\widehat E_{i,k}<q_i\), decreases it when \(\widehat E_{i,k}>q_i\), and leaves it unchanged when \(\widehat E_{i,k}=q_i\).
 \end{lemma}
 
-\begin{proof} If \(\widehat M_{i,k}\le q_i\), then
+\begin{proof} If \(\widehat E_{i,k}\le q_i\), then
 
 \[
-e_{i,k}=1-\frac{\widehat M_{i,k}}{q_i}\in[0,1].
+e_{i,k}=1-\frac{\widehat E_{i,k}}{q_i}\in[0,1].
 \]
 
-If \(\widehat M_{i,k}>q_i\), then
+If \(\widehat E_{i,k}>q_i\), then
 
 \[
-e_{i,k}=\frac{q_i}{\widehat M_{i,k}}-1\in(-1,0).
+e_{i,k}=\frac{q_i}{\widehat E_{i,k}}-1\in(-1,0).
 \]
 
 These relations establish Equation~\eqref{eq:app-e-3}, the update direction, and Equation~\eqref{eq:app-e-4}.
@@ -1280,7 +1263,7 @@ At a positive interior fixed point, where the clipping bounds are inactive,
 \label{eq:app-e-5}
 W_{i,k+1}=W_{i,k}
 \Longleftrightarrow e_{i,k}=0
-\Longleftrightarrow \widehat M_{i,k}=q_i.
+\Longleftrightarrow \widehat E_{i,k}=q_i.
 \end{equation}
 
 Thus, the controller's interior fixed points match the occupancy targets required by the allocation principle in \S\ref{sec:signal}.
@@ -1320,7 +1303,7 @@ Using the residence–occupancy identity,
 \begin{equation}
 \label{eq:app-e-9}
 \boxed{
-M_i(\mathbf W)
+E_i(\mathbf W)
 =
 x_iD
 =
@@ -1328,7 +1311,7 @@ W_i\left(1-\frac BS\right).
 }
 \end{equation}
 
-At a target-matching equilibrium, \(M_i(\mathbf W^\star)=q_i\), so
+At a target-matching equilibrium, \(E_i(\mathbf W^\star)=q_i\), so
 
 \begin{equation}
 \label{eq:app-e-10}
@@ -1396,7 +1379,7 @@ The linearized dynamics are asymptotically stable if and only if
 
 \begin{equation}
 \label{eq:app-e-16}
-\frac{\partial M_i}{\partial W_j}
+\frac{\partial E_i}{\partial W_j}
 =
 \left(1-\frac BS\right)\mathbf 1\{i=j\}
 +
@@ -1410,13 +1393,13 @@ At the equilibrium,
 1-\frac{B}{S^\star}=\frac{Q}{S^\star}.
 \end{equation}
 
-The normalized error in Equation~\eqref{eq:app-e-1} is continuously differentiable at \(\widehat M_i=q_i>0\), with derivative
+The normalized error in Equation~\eqref{eq:app-e-1} is continuously differentiable at \(\widehat E_i=q_i>0\), with derivative
 
 \begin{equation}
 \label{eq:app-e-18}
 \left.
-\frac{\partial e_i}{\partial M_i}
-\right|_{M_i=q_i}
+\frac{\partial e_i}{\partial E_i}
+\right|_{E_i=q_i}
 =-\frac1{q_i}.
 \end{equation}
 
@@ -1434,7 +1417,7 @@ At \(\mathbf W^\star\), \(e_i=0\), and the Jacobian is
 \frac{\partial F_i}{\partial W_j}
 &=\mathbf 1\{i=j\}
 -g\frac{W_i^\star}{q_i}
-\frac{\partial M_i}{\partial W_j}\\
+\frac{\partial E_i}{\partial W_j}\\
 &=(1-g)\mathbf 1\{i=j\}
 -\frac{gB W_i^\star}{QS^\star}.
 \end{aligned}
@@ -1571,7 +1554,7 @@ The precision requirement provides a complementary lower bound. Let \(b_i\) be a
 
 \begin{equation}
 \label{eq:app-e-28}
-\frac{|\overline M_i-aw_i|}{aw_i}\le\epsilon_q,
+\frac{|\overline E_i-aw_i|}{aw_i}\le\epsilon_q,
 \end{equation}
 
 it suffices to choose
@@ -1601,7 +1584,7 @@ Together, Equations~\eqref{eq:app-e-27} and \eqref{eq:app-e-29} define the feasi
 a_{\mathrm{lo}}\le a\le a_{\mathrm{hi}}.
 \end{equation}
 
-A deployment can select a point near \(a_{\mathrm{ref}}\) within this interval. This offline calibration uses the intended capacity, concurrent weights, minimum flow weight, control period, and packet-size configuration.
+A deployment can select a point near \(a_{\mathrm{ref}}\) within this interval. This offline calibration uses the intended capacity, concurrent weights, minimum flow weight, fixed observation period \(T_0/2\), and packet-size configuration.
 
 
 \section{RTT-Guided Congestion Protection}
@@ -1636,7 +1619,7 @@ The epoch duration is
 
 \begin{equation}
 \label{eq:app-f-3}
-E_{i,k}=2\max(\overline R_{i,k-1},T_0).
+\tau_{i,k}=2\max(\overline R_{i,k-1},T_0).
 \end{equation}
 
 If an epoch contains no valid RTT samples, the current protection scale is retained.
